@@ -1,0 +1,12 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: binance-collector-service
+  kafka:
+    bootstrap-servers: localhost:9092
+
+binance:
+  websocket:
+    url: wss://stream.binance.com:9443/stream?streams=btcusdt@trade/btcusdt@bookTicker/btcusdt@kline_1m

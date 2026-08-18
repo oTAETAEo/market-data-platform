@@ -1,0 +1,83 @@
+HELP.md
+
+### Gradle ###
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings/
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+### IntelliJ IDEA ###
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
+
+### OS ###
+.DS_Store
+Thumbs.db
+
+### Logs / Runtime ###
+*.log
+logs/
+*.pid
+*.hprof
+hs_err_pid*
+
+### Local environment / Secrets ###
+.env
+.env.*
+!.env.example
+**/application-local.yml
+**/application-local.yaml
+**/application-secret.yml
+**/application-secret.yaml
+**/application-private.yml
+**/application-private.yaml
+
+### Certificates / Key stores ###
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+### Local Docker persistent data ###
+kafka-data/
+zookeeper-data/
+redis-data/
+mongo-data/
+local-data/
+
+### Docker local overrides ###
+docker-compose.override.yml
+compose.override.yml
+
+.omx
