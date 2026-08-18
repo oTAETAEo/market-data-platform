@@ -6,11 +6,13 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record AlpacaTradeMessage(
-        @JsonProperty("i") Long tradeId,
+public record AlpacaBarMessage(
         @JsonProperty("S") String symbol,
-        @JsonProperty("p") BigDecimal price,
-        @JsonProperty("s") BigDecimal size,
-        @JsonProperty("t") Instant timestamp
+        @JsonProperty("o") BigDecimal open,
+        @JsonProperty("h") BigDecimal high,
+        @JsonProperty("l") BigDecimal low,
+        @JsonProperty("c") BigDecimal close,
+        @JsonProperty("v") BigDecimal volume,
+        @JsonProperty("t") Instant openTime
 ) {
 }
