@@ -1,6 +1,6 @@
 # Market Data Platform — Architecture Overview
 
-이 문서는 Binance와 Alpaca의 실시간 시장 데이터를 수집하고, 공통 이벤트로 정규화하여 Kafka를 통해 향후 저장·피드 서비스로 전달하는 목표 아키텍처를 나타냅니다.
+## 아키텍처
 
 <img width="1276" height="896" alt="Image" src="https://github.com/user-attachments/assets/6daa7060-8161-40a9-b795-7a88b5e9c48e" />
 
