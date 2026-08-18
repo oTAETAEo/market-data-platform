@@ -14,7 +14,6 @@ import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.support.serializer.JsonSerializer;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -26,71 +25,65 @@ public class KafkaConfig {
     private static final String MARKET_BARS_TOPIC = "market.bar.v1";
     private static final String MARKET_DLQ_TOPIC = "market.dlq.v1";
 
+    private static final int TOPIC_PARTITIONS = 3;
+    private static final short TOPIC_REPLICATION_FACTOR = 1;
+
     @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapServers;
 
     @Bean
     public NewTopic marketTradesTopic() {
-        return TopicBuilder.name(MARKET_TRADES_TOPIC)
-                .partitions(3)
-                .replicas(1)
-                .build();
+        return topic(MARKET_TRADES_TOPIC);
     }
 
     @Bean
     public NewTopic marketQuotesTopic() {
-        return TopicBuilder.name(MARKET_QUOTES_TOPIC)
-                .partitions(3)
-                .replicas(1)
-                .build();
+        return topic(MARKET_QUOTES_TOPIC);
     }
 
     @Bean
     public NewTopic marketBarsTopic() {
-        return TopicBuilder.name(MARKET_BARS_TOPIC)
-                .partitions(3)
-                .replicas(1)
-                .build();
+        return topic(MARKET_BARS_TOPIC);
     }
 
     @Bean
     public NewTopic marketDlqTopic() {
-        return TopicBuilder.name(MARKET_DLQ_TOPIC)
-                .partitions(3)
-                .replicas(1)
-                .build();
+        return topic(MARKET_DLQ_TOPIC);
     }
 
     @Bean
     public ProducerFactory<String, Object> producerFactory() {
-        JsonSerializer<Object> jsonSerializer = new JsonSerializer<>(kafkaObjectMapper());
-        Map<String, Object> configProps = new HashMap<>();
-
-        // 1. 기본 브로커 및 직렬화 설정
-        configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
-        configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
-
-        // 2. 멱등성 및 전송 보장 옵션
-        configProps.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
-        configProps.put(ProducerConfig.ACKS_CONFIG, "all");
-        configProps.put(ProducerConfig.RETRIES_CONFIG, Integer.MAX_VALUE);
-        configProps.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, 5);
-
-        // 3. 성능 튜닝 옵션 (시세 데이터 처리 최적화)
-        configProps.put(ProducerConfig.LINGER_MS_CONFIG, 10);         // 10ms 대기 후 배치 전송
-        configProps.put(ProducerConfig.BATCH_SIZE_CONFIG, 32 * 1024); // 32KB
-
         return new DefaultKafkaProducerFactory<>(
-                configProps,
+                producerProperties(),
                 new StringSerializer(),
-                jsonSerializer
+                new JsonSerializer<>(kafkaObjectMapper())
         );
     }
 
     @Bean
     public KafkaTemplate<String, Object> kafkaTemplate() {
         return new KafkaTemplate<>(producerFactory());
+    }
+
+    private NewTopic topic(String topicName) {
+        return TopicBuilder.name(topicName)
+                .partitions(TOPIC_PARTITIONS)
+                .replicas(TOPIC_REPLICATION_FACTOR)
+                .build();
+    }
+
+    private Map<String, Object> producerProperties() {
+        Map<String, Object> properties = new HashMap<>();
+        properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+        properties.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
+        properties.put(ProducerConfig.ACKS_CONFIG, "all");
+        properties.put(ProducerConfig.RETRIES_CONFIG, Integer.MAX_VALUE);
+        properties.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, 5);
+        properties.put(ProducerConfig.LINGER_MS_CONFIG, 10);
+        properties.put(ProducerConfig.BATCH_SIZE_CONFIG, 32 * 1024);
+        return properties;
     }
 
     private ObjectMapper kafkaObjectMapper() {

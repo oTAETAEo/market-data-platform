@@ -158,7 +158,7 @@ public class BinanceWebSocketClient {
                 Instant.ofEpochMilli(kline.openTime()),
                 Instant.ofEpochMilli(kline.closeTime()),
                 kline.closed(),
-                Instant.ofEpochMilli(kline.closeTime()),
+                Instant.ofEpochMilli(klineMessage.eventTime()),
                 receivedAt,
                 1
         );

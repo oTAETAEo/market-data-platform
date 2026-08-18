@@ -13,57 +13,37 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class MarketDataProducer {
-
-    private static final String TRADES_TOPIC = "market.trade.v1";
-    private static final String QUOTES_TOPIC = "market.quote.v1";
-    private static final String BARS_TOPIC = "market.bar.v1";
+    private static final String TRADE_TOPIC = "market.trade.v1";
+    private static final String QUOTE_TOPIC = "market.quote.v1";
+    private static final String BAR_TOPIC = "market.bar.v1";
     private static final String DLQ_TOPIC = "market.dlq.v1";
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
     public void sendTick(MarketTickEvent event) {
-        kafkaTemplate.send(TRADES_TOPIC, event.symbol(), event)
-                .whenComplete((result, ex) -> {
-                    if (ex != null) {
-                        log.error("Binance 체결 이벤트 Kafka 전송에 실패했습니다: {}", event, ex);
-                    } else {
-                        log.debug("Binance 체결 이벤트를 Kafka로 전송했습니다: symbol={}, price={}", event.symbol(), event.price());
-                    }
-                });
+        send(TRADE_TOPIC, event.symbol(), event, "TRADE");
     }
 
     public void sendBookTicker(MarketBookTickerEvent event) {
-        kafkaTemplate.send(QUOTES_TOPIC, event.symbol(), event)
-                .whenComplete((result, ex) -> {
-                    if (ex != null) {
-                        log.error("Binance 호가 이벤트 Kafka 전송에 실패했습니다: {}", event, ex);
-                    } else {
-                        log.debug("Binance 호가 이벤트를 Kafka로 전송했습니다: symbol={}, bid={}, ask={}",
-                                event.symbol(), event.bidPrice(), event.askPrice());
-                    }
-                });
+        send(QUOTE_TOPIC, event.symbol(), event, "QUOTE");
     }
 
     public void sendCandle(MarketCandleEvent event) {
-        kafkaTemplate.send(BARS_TOPIC, event.symbol(), event)
-                .whenComplete((result, ex) -> {
-                    if (ex != null) {
-                        log.error("Binance 캔들 이벤트 Kafka 전송에 실패했습니다: {}", event, ex);
-                    } else {
-                        log.debug("Binance 캔들 이벤트를 Kafka로 전송했습니다: symbol={}, interval={}, close={}",
-                                event.symbol(), event.interval(), event.close());
-                    }
-                });
+        send(BAR_TOPIC, event.symbol(), event, "BAR");
     }
 
     public void sendDlq(MarketDlqEvent event) {
-        kafkaTemplate.send(DLQ_TOPIC, event.eventId(), event)
-                .whenComplete((result, ex) -> {
-                    if (ex != null) {
-                        log.error("Binance DLQ 이벤트 Kafka 전송에 실패했습니다: {}", event, ex);
-                    } else {
-                        log.debug("Binance DLQ 이벤트를 Kafka로 전송했습니다: reason={}", event.reason());
-                    }
-                });
+        send(DLQ_TOPIC, event.eventId(), event, "DLQ");
+    }
+
+    private void send(String topic, String key, Object event, String eventType) {
+        kafkaTemplate.send(topic, key, event).whenComplete((result, error) -> {
+            if (error == null) {
+                log.debug("Binance {} event sent: topic={}, key={}", eventType, topic, key);
+            } else {
+                log.error("Binance 이벤트 Kafka 전송에 실패했습니다: type={}, topic={}, key={}",
+                        eventType, topic, key, error);
+            }
+        });
     }
 }
