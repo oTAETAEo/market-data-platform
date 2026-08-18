@@ -12,4 +12,4 @@ alpaca:
     url: wss://stream.data.alpaca.markets/v2/iex
     key: ${ALPACA_API_KEY}
     secret: ${ALPACA_SECRET_KEY}
-    symbols: AAPL
+    symbols: AAPL,MSFT,NVDA,TSLA,AMZN
