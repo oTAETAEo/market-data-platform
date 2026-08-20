@@ -2,8 +2,10 @@ package com.marketdata.collector.binance.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.marketdata.collector.binance.config.BinanceWebSocketProperties;
 import com.marketdata.collector.binance.service.MarketDataProducer;
 import com.marketdata.core.event.MarketCandleEvent;
+import com.marketdata.core.event.MarketOrderBookEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -12,24 +14,86 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class BinanceWebSocketClientTest {
+
+    private static final String BASE_URL = "wss://stream.binance.com:9443/stream";
 
     private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
     @Mock
     private MarketDataProducer producer;
 
+    private BinanceWebSocketProperties webSocketProperties;
     private BinanceWebSocketClient client;
 
     @BeforeEach
     void setUp() {
-        client = new BinanceWebSocketClient(producer, objectMapper);
+        webSocketProperties = new BinanceWebSocketProperties();
+        webSocketProperties.setBaseUrl(BASE_URL);
+        webSocketProperties.setSymbols("BTCUSDT");
+        webSocketProperties.setKlineInterval("1m");
+        webSocketProperties.setDepthLevels(20);
+        webSocketProperties.setDepthUpdateInterval("100ms");
+        client = new BinanceWebSocketClient(webSocketProperties, producer, objectMapper);
+    }
+
+    @Test
+    void createsCombinedStreamUrlForMultipleSymbolsIncludingDepth() {
+        webSocketProperties.setSymbols("BTCUSDT, ethusdt, SOLUSDT, BTCUSDT");
+
+        assertThat(webSocketProperties.symbolList())
+                .containsExactly("BTCUSDT", "ETHUSDT", "SOLUSDT");
+        assertThat(webSocketProperties.combinedStreamUrl()).isEqualTo(
+                "wss://stream.binance.com:9443/stream?streams="
+                        + "btcusdt@trade/btcusdt@bookTicker/btcusdt@kline_1m/btcusdt@depth20@100ms/"
+                        + "ethusdt@trade/ethusdt@bookTicker/ethusdt@kline_1m/ethusdt@depth20@100ms/"
+                        + "solusdt@trade/solusdt@bookTicker/solusdt@kline_1m/solusdt@depth20@100ms"
+        );
+    }
+
+    @Test
+    void rejectsEmptySymbolList() {
+        webSocketProperties.setSymbols(" , ");
+
+        assertThatIllegalArgumentException()
+                .isThrownBy(webSocketProperties::combinedStreamUrl)
+                .withMessage("Binance 구독 심볼은 최소 1개 이상 설정해야 합니다.");
+    }
+
+    @Test
+    void normalizesPartialDepthToOrderBookEvent() {
+        ReflectionTestUtils.invokeMethod(client, "processMessage", """
+                {
+                  "stream":"btcusdt@depth20@100ms",
+                  "data":{
+                    "lastUpdateId":123456,
+                    "bids":[["64000.10","0.500"],["64000.00","1.250"]],
+                    "asks":[["64000.20","0.300"],["64000.30","0.700"]]
+                  }
+                }
+                """);
+
+        ArgumentCaptor<MarketOrderBookEvent> captor = ArgumentCaptor.forClass(MarketOrderBookEvent.class);
+        verify(producer).sendOrderBook(captor.capture());
+
+        MarketOrderBookEvent event = captor.getValue();
+        assertThat(event.providerEventId()).isEqualTo("BTCUSDT:123456");
+        assertThat(event.symbol()).isEqualTo("BTCUSDT");
+        assertThat(event.depthLevels()).isEqualTo(20);
+        assertThat(event.bids()).hasSize(2);
+        assertThat(event.asks()).hasSize(2);
+        assertThat(event.bids().getFirst().price()).isEqualByComparingTo(new BigDecimal("64000.10"));
+        assertThat(event.bids().getFirst().quantity()).isEqualByComparingTo(new BigDecimal("0.500"));
+        assertThat(event.asks().getFirst().price()).isEqualByComparingTo(new BigDecimal("64000.20"));
+        assertThat(event.eventTime()).isEqualTo(event.receivedAt());
     }
 
     @Test

@@ -9,4 +9,8 @@ spring:
 
 binance:
   websocket:
-    url: wss://stream.binance.com:9443/stream?streams=btcusdt@trade/btcusdt@bookTicker/btcusdt@kline_1m
+    base-url: wss://stream.binance.com:9443/stream
+    symbols: BTCUSDT
+    kline-interval: 1m
+    depth-levels: 20
+    depth-update-interval: 100ms
