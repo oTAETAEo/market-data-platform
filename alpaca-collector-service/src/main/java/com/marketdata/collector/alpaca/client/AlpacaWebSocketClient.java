@@ -18,11 +18,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.socket.WebSocketMessage;
+import org.springframework.web.reactive.socket.WebSocketSession;
 import org.springframework.web.reactive.socket.client.ReactorNettyWebSocketClient;
 import org.springframework.web.reactive.socket.client.WebSocketClient;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.util.retry.Retry;
+
 import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
@@ -59,14 +62,14 @@ public class AlpacaWebSocketClient {
                 );
     }
 
-    private Mono<Void> openSession(org.springframework.web.reactive.socket.WebSocketSession session) {
+    private Mono<Void> openSession(WebSocketSession session) {
         Sinks.Many<String> outbound = Sinks.many().unicast().onBackpressureBuffer();
         AtomicBoolean subscribed = new AtomicBoolean(false);
         emit(outbound, createAuthMessage(), "auth");
 
         Mono<Void> receive = session.receive()
                 .map(WebSocketMessage::getPayloadAsText)
-                .doOnNext(payload -> processPayload(payload, outbound, subscribed))
+                .flatMap(payload -> processPayload(payload, outbound, subscribed))
                 .then()
                 .doFinally(signal -> outbound.tryEmitComplete());
 
@@ -74,44 +77,54 @@ public class AlpacaWebSocketClient {
         return send.and(receive);
     }
 
-    private void processPayload(String payload, Sinks.Many<String> outbound, AtomicBoolean subscribed) {
+    private Mono<Void> processPayload(String payload, Sinks.Many<String> outbound, AtomicBoolean subscribed) {
         try {
             JsonNode messages = objectMapper.readTree(payload);
             if (!messages.isArray()) {
                 log.debug("Ignoring non-array Alpaca message: {}", payload);
-                return;
+                return Mono.empty();
             }
-            for (JsonNode message : messages) {
-                processMessage(message, outbound, subscribed);
-            }
+            return Flux.fromIterable(messages)
+                    .flatMap(message -> processMessage(message, outbound, subscribed))
+                    .then();
         } catch (Exception error) {
-            publishParseFailure(payload, error, Instant.now());
+            return publishParseFailure(payload, error, Instant.now());
         }
     }
 
-    private void processMessage(JsonNode message, Sinks.Many<String> outbound, AtomicBoolean subscribed) {
+    private Mono<Void> processMessage(JsonNode message, Sinks.Many<String> outbound, AtomicBoolean subscribed) {
         Instant receivedAt = Instant.now();
         String type = message.path("T").asText();
-        switch (type) {
+        return switch (type) {
             case "success" -> processSuccess(message, outbound, subscribed);
-            case "subscription" -> log.info("Alpaca subscription confirmed: {}", message);
-            case "error" -> log.error("Alpaca stream error: {}", message);
+            case "subscription" -> {
+                log.info("Alpaca subscription confirmed: {}", message);
+                yield Mono.empty();
+            }
+            case "error" -> {
+                log.error("Alpaca stream error: {}", message);
+                yield Mono.empty();
+            }
             case "t" -> processTrade(message, receivedAt);
             case "q" -> processQuote(message, receivedAt);
             case "b", "u" -> processBar(message, receivedAt);
-            default -> log.debug("Ignoring Alpaca message type {}: {}", type, message);
-        }
+            default -> {
+                log.debug("Ignoring Alpaca message type {}: {}", type, message);
+                yield Mono.empty();
+            }
+        };
     }
 
-    private void processSuccess(JsonNode message, Sinks.Many<String> outbound, AtomicBoolean subscribed) {
+    private Mono<Void> processSuccess(JsonNode message, Sinks.Many<String> outbound, AtomicBoolean subscribed) {
         String status = message.path("msg").asText();
         log.info("Alpaca session status: {}", status);
         if ("authenticated".equals(status) && subscribed.compareAndSet(false, true)) {
             emit(outbound, createSubscribeMessage(), "subscribe");
         }
+        return Mono.empty();
     }
 
-    private void processTrade(JsonNode message, Instant receivedAt) {
+    private Mono<Void> processTrade(JsonNode message, Instant receivedAt) {
         try {
             AlpacaTradeMessage trade = objectMapper.convertValue(message, AlpacaTradeMessage.class);
             MarketTickEvent event = new MarketTickEvent(
@@ -120,13 +133,13 @@ public class AlpacaWebSocketClient {
                     PROVIDER, VENUE, ASSET_CLASS, trade.symbol(),
                     trade.price(), trade.size(), trade.timestamp(), receivedAt, 1
             );
-            producer.sendTick(event);
+            return producer.sendTick(event);
         } catch (Exception error) {
-            publishParseFailure(message.toString(), error, receivedAt);
+            return publishParseFailure(message.toString(), error, receivedAt);
         }
     }
 
-    private void processQuote(JsonNode message, Instant receivedAt) {
+    private Mono<Void> processQuote(JsonNode message, Instant receivedAt) {
         try {
             AlpacaQuoteMessage quote = objectMapper.convertValue(message, AlpacaQuoteMessage.class);
             String providerEventId = quote.symbol() + ":" + quote.timestamp() + ":" + quote.bidPrice() + ":" + quote.askPrice();
@@ -136,13 +149,13 @@ public class AlpacaWebSocketClient {
                     quote.bidPrice(), quote.bidSize(), quote.askPrice(), quote.askSize(),
                     quote.timestamp(), receivedAt, 1
             );
-            producer.sendBookTicker(event);
+            return producer.sendBookTicker(event);
         } catch (Exception error) {
-            publishParseFailure(message.toString(), error, receivedAt);
+            return publishParseFailure(message.toString(), error, receivedAt);
         }
     }
 
-    private void processBar(JsonNode message, Instant receivedAt) {
+    private Mono<Void> processBar(JsonNode message, Instant receivedAt) {
         try {
             AlpacaBarMessage bar = objectMapper.convertValue(message, AlpacaBarMessage.class);
             Instant openTime = bar.openTime();
@@ -154,15 +167,15 @@ public class AlpacaWebSocketClient {
                     bar.open(), bar.high(), bar.low(), bar.close(), bar.volume(),
                     openTime, closeTime, true, closeTime, receivedAt, 1
             );
-            producer.sendCandle(event);
+            return producer.sendCandle(event);
         } catch (Exception error) {
-            publishParseFailure(message.toString(), error, receivedAt);
+            return publishParseFailure(message.toString(), error, receivedAt);
         }
     }
 
-    private void publishParseFailure(String payload, Exception error, Instant receivedAt) {
+    private Mono<Void> publishParseFailure(String payload, Exception error, Instant receivedAt) {
         log.error("Alpaca payload parse failed: {}", payload, error);
-        producer.sendDlq(new MarketDlqEvent(
+        return producer.sendDlq(new MarketDlqEvent(
                 UUID.randomUUID().toString(), PROVIDER, VENUE, ASSET_CLASS,
                 "alpaca.websocket", "PARSE_FAILED", payload, error.getMessage(), receivedAt, 1
         ));

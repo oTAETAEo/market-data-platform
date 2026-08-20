@@ -3,6 +3,7 @@ package com.marketdata.collector.alpaca.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.marketdata.core.kafka.MarketTopics;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -10,20 +11,15 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.TopicBuilder;
-import org.springframework.kafka.core.DefaultKafkaProducerFactory;
-import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.support.serializer.JsonSerializer;
+import reactor.kafka.sender.KafkaSender;
+import reactor.kafka.sender.SenderOptions;
+
 import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
 public class KafkaConfig {
-
-    private static final String MARKET_TRADES_TOPIC = "market.trade.v1";
-    private static final String MARKET_QUOTES_TOPIC = "market.quote.v1";
-    private static final String MARKET_BARS_TOPIC = "market.bar.v1";
-    private static final String MARKET_DLQ_TOPIC = "market.dlq.v1";
 
     private static final int TOPIC_PARTITIONS = 3;
     private static final short TOPIC_REPLICATION_FACTOR = 1;
@@ -33,36 +29,52 @@ public class KafkaConfig {
 
     @Bean
     public NewTopic marketTradesTopic() {
-        return topic(MARKET_TRADES_TOPIC);
+        return topic(MarketTopics.TRADE);
     }
 
     @Bean
     public NewTopic marketQuotesTopic() {
-        return topic(MARKET_QUOTES_TOPIC);
+        return topic(MarketTopics.QUOTE);
     }
 
     @Bean
     public NewTopic marketBarsTopic() {
-        return topic(MARKET_BARS_TOPIC);
+        return topic(MarketTopics.BAR);
+    }
+
+    @Bean
+    public NewTopic marketDepthTopic() {
+        return topic(MarketTopics.DEPTH);
     }
 
     @Bean
     public NewTopic marketDlqTopic() {
-        return topic(MARKET_DLQ_TOPIC);
+        return topic(MarketTopics.DLQ);
     }
 
     @Bean
-    public ProducerFactory<String, Object> producerFactory() {
-        return new DefaultKafkaProducerFactory<>(
-                producerProperties(),
-                new StringSerializer(),
-                new JsonSerializer<>(kafkaObjectMapper())
-        );
+    public SenderOptions<String, Object> senderOptions() {
+
+        JsonSerializer<Object> jsonSerializer = new JsonSerializer<>(kafkaObjectMapper());
+        jsonSerializer.setAddTypeInfo(false);
+
+        Map<String, Object> props = new HashMap<>();
+        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        props.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
+        props.put(ProducerConfig.ACKS_CONFIG, "all");
+        props.put(ProducerConfig.RETRIES_CONFIG, Integer.MAX_VALUE);
+        props.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, 5);
+        props.put(ProducerConfig.LINGER_MS_CONFIG, 10);
+        props.put(ProducerConfig.BATCH_SIZE_CONFIG, 32 * 1024);
+
+        return SenderOptions.<String, Object>create(props)
+                .withKeySerializer(new StringSerializer())
+                .withValueSerializer(jsonSerializer);
     }
 
-    @Bean
-    public KafkaTemplate<String, Object> kafkaTemplate() {
-        return new KafkaTemplate<>(producerFactory());
+    @Bean(destroyMethod = "close")
+    public KafkaSender<String, Object> kafkaSender(SenderOptions<String, Object> senderOptions) {
+        return KafkaSender.create(senderOptions);
     }
 
     private NewTopic topic(String topicName) {
@@ -70,20 +82,6 @@ public class KafkaConfig {
                 .partitions(TOPIC_PARTITIONS)
                 .replicas(TOPIC_REPLICATION_FACTOR)
                 .build();
-    }
-
-    private Map<String, Object> producerProperties() {
-        Map<String, Object> properties = new HashMap<>();
-        properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
-        properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
-        properties.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
-        properties.put(ProducerConfig.ACKS_CONFIG, "all");
-        properties.put(ProducerConfig.RETRIES_CONFIG, Integer.MAX_VALUE);
-        properties.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, 5);
-        properties.put(ProducerConfig.LINGER_MS_CONFIG, 10);
-        properties.put(ProducerConfig.BATCH_SIZE_CONFIG, 32 * 1024);
-        return properties;
     }
 
     private ObjectMapper kafkaObjectMapper() {
