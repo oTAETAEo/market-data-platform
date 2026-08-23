@@ -12,14 +12,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
+import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class BinanceWebSocketClientTest {
@@ -32,7 +34,8 @@ class BinanceWebSocketClientTest {
     private MarketDataProducer producer;
 
     private BinanceWebSocketProperties webSocketProperties;
-    private BinanceWebSocketClient client;
+    private BinanceSubscriptionFactory subscriptionFactory;
+    private BinanceMessageHandler messageHandler;
 
     @BeforeEach
     void setUp() {
@@ -42,16 +45,18 @@ class BinanceWebSocketClientTest {
         webSocketProperties.setKlineInterval("1m");
         webSocketProperties.setDepthLevels(20);
         webSocketProperties.setDepthUpdateInterval("100ms");
-        client = new BinanceWebSocketClient(webSocketProperties, producer, objectMapper);
+        subscriptionFactory = new BinanceSubscriptionFactory(webSocketProperties);
+        BinanceMessageMapper mapper = new BinanceMessageMapper(objectMapper, webSocketProperties);
+        messageHandler = new BinanceMessageHandler(objectMapper, mapper, producer);
     }
 
     @Test
     void createsCombinedStreamUrlForMultipleSymbolsIncludingDepth() {
         webSocketProperties.setSymbols("BTCUSDT, ethusdt, SOLUSDT, BTCUSDT");
 
-        assertThat(webSocketProperties.symbolList())
+        assertThat(subscriptionFactory.symbolList())
                 .containsExactly("BTCUSDT", "ETHUSDT", "SOLUSDT");
-        assertThat(webSocketProperties.combinedStreamUrl()).isEqualTo(
+        assertThat(subscriptionFactory.streamUrl()).isEqualTo(
                 "wss://stream.binance.com:9443/stream?streams="
                         + "btcusdt@trade/btcusdt@bookTicker/btcusdt@kline_1m/btcusdt@depth20@100ms/"
                         + "ethusdt@trade/ethusdt@bookTicker/ethusdt@kline_1m/ethusdt@depth20@100ms/"
@@ -64,13 +69,15 @@ class BinanceWebSocketClientTest {
         webSocketProperties.setSymbols(" , ");
 
         assertThatIllegalArgumentException()
-                .isThrownBy(webSocketProperties::combinedStreamUrl)
+                .isThrownBy(subscriptionFactory::streamUrl)
                 .withMessage("Binance 구독 심볼은 최소 1개 이상 설정해야 합니다.");
     }
 
     @Test
     void normalizesPartialDepthToOrderBookEvent() {
-        ReflectionTestUtils.invokeMethod(client, "processMessage", """
+        when(producer.sendOrderBook(any())).thenReturn(Mono.empty());
+
+        messageHandler.handle("""
                 {
                   "stream":"btcusdt@depth20@100ms",
                   "data":{
@@ -79,7 +86,7 @@ class BinanceWebSocketClientTest {
                     "asks":[["64000.20","0.300"],["64000.30","0.700"]]
                   }
                 }
-                """);
+                """).block();
 
         ArgumentCaptor<MarketOrderBookEvent> captor = ArgumentCaptor.forClass(MarketOrderBookEvent.class);
         verify(producer).sendOrderBook(captor.capture());
@@ -102,8 +109,9 @@ class BinanceWebSocketClientTest {
         long eventTimeMillis = Instant.parse(eventTime).toEpochMilli();
         long openTimeMillis = Instant.parse("2026-08-18T12:00:00Z").toEpochMilli();
         long closeTimeMillis = Instant.parse("2026-08-18T12:00:59.999Z").toEpochMilli();
+        when(producer.sendCandle(any())).thenReturn(Mono.empty());
 
-        ReflectionTestUtils.invokeMethod(client, "processMessage", """
+        messageHandler.handle("""
                 {
                   "e":"kline",
                   "E":%d,
@@ -121,7 +129,7 @@ class BinanceWebSocketClientTest {
                     "x":true
                   }
                 }
-                """.formatted(eventTimeMillis, openTimeMillis, closeTimeMillis));
+                """.formatted(eventTimeMillis, openTimeMillis, closeTimeMillis)).block();
 
         ArgumentCaptor<MarketCandleEvent> captor = ArgumentCaptor.forClass(MarketCandleEvent.class);
         verify(producer).sendCandle(captor.capture());

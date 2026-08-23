@@ -14,12 +14,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
+import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
+
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicBoolean;
+
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class AlpacaWebSocketClientTest {
@@ -28,19 +32,20 @@ class AlpacaWebSocketClientTest {
     @Mock
     private MarketDataProducer producer;
 
-    private AlpacaWebSocketClient client;
+    private AlpacaMessageHandler messageHandler;
 
     @BeforeEach
     void setUp() {
-        client = new AlpacaWebSocketClient(
-                new AlpacaWebSocketProperties("wss://example.test", "key", "secret", "AAPL"),
-                producer,
-                objectMapper
-        );
+        AlpacaWebSocketProperties properties = new AlpacaWebSocketProperties("wss://example.test", "key", "secret", "AAPL");
+        AlpacaSubscriptionFactory subscriptionFactory = new AlpacaSubscriptionFactory(properties, objectMapper);
+        AlpacaMessageMapper mapper = new AlpacaMessageMapper(objectMapper);
+        messageHandler = new AlpacaMessageHandler(objectMapper, subscriptionFactory, mapper, producer);
     }
 
     @Test
     void normalizesTradeWithProviderTradeId() throws Exception {
+        when(producer.sendTick(any())).thenReturn(Mono.empty());
+
         process("""
                 {"T":"t","i":42,"S":"AAPL","p":210.15,"s":3,"t":"2026-08-18T12:00:01Z"}
                 """);
@@ -57,6 +62,8 @@ class AlpacaWebSocketClientTest {
 
     @Test
     void normalizesQuoteToBookTicker() throws Exception {
+        when(producer.sendBookTicker(any())).thenReturn(Mono.empty());
+
         process("""
                 {"T":"q","S":"AAPL","bp":210.10,"bs":2,"ap":210.20,"as":4,"t":"2026-08-18T12:00:02Z"}
                 """);
@@ -72,6 +79,8 @@ class AlpacaWebSocketClientTest {
 
     @Test
     void normalizesUpdatedBarAsClosedOneMinuteCandle() throws Exception {
+        when(producer.sendCandle(any())).thenReturn(Mono.empty());
+
         process("""
                 {"T":"u","S":"AAPL","o":210.00,"h":211.00,"l":209.80,"c":210.50,"v":100,"t":"2026-08-18T12:00:00Z"}
                 """);
@@ -90,6 +99,6 @@ class AlpacaWebSocketClientTest {
     private void process(String json) throws Exception {
         JsonNode node = objectMapper.readTree(json);
         Sinks.Many<String> sink = Sinks.many().unicast().onBackpressureBuffer();
-        ReflectionTestUtils.invokeMethod(client, "processMessage", node, sink, new AtomicBoolean(false));
+        messageHandler.processMessage(node, sink, new AtomicBoolean(false)).block();
     }
 }
