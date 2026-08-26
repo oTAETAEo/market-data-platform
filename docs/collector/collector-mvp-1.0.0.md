@@ -67,13 +67,14 @@ public record MarketCandleEvent(
 
 `closed=false` 이벤트는 실시간 UI 갱신에, `closed=true` 이벤트는 이후 지표 계산과 캔들 확정 처리에 사용합니다.
 
-## 구현 순서
+## 현재 상태
 
-1. Alpaca collector 제거
-2. `core-domain`을 캔들 중심 계약으로 정리
-3. Binance Futures Kline 구독과 정규화 적용
-4. Bybit Linear Kline 구독과 정규화 적용
-5. 두 collector가 같은 Kafka topic/key 규칙으로 발행하는지 테스트
+- [x] Alpaca collector 제거
+- [x] `core-domain` candle 계약 정리
+- [x] Binance USD-M Futures Kline 적용
+- [x] Bybit Linear Kline 적용
+- [x] Mapper 테스트
+- [ ] 실제 Kafka 통합 검증
 
 ## 다음 단계
 

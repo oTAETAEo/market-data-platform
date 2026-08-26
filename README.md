@@ -148,10 +148,37 @@ docker exec -it kafka kafka-console-consumer \
   --from-beginning
 ```
 
+아래와 같은 `MarketCandleEvent`가 출력되면 collector → normalize → Kafka 흐름이 동작하는 것입니다.
+
+```json
+{
+  "provider": "BINANCE",
+  "venue": "BINANCE_USDM_FUTURES",
+  "assetClass": "CRYPTO_FUTURES",
+  "symbol": "BTCUSDT",
+  "interval": "15m",
+  "open": 64320.1,
+  "high": 64510.5,
+  "low": 64280.2,
+  "close": 64490.7,
+  "volume": 120.5,
+  "closed": false
+}
+```
+
+`market.candle.v1`에서 아래 두 key가 모두 확인되면 MVP 1.0 통합 검증 완료로 봅니다.
+
+```text
+BINANCE_USDM_FUTURES:BTCUSDT:15m
+BYBIT_LINEAR:BTCUSDT:15m
+```
+
 
 ## 8. Roadmap
 
 ### MVP 1.0 — Candle Ingestion
+
+> 완료 기준: Binance USD-M Futures와 Bybit Linear의 BTCUSDT 15m Kline이 동일한 `MarketCandleEvent` 형식으로 `market.candle.v1`에 정상 발행되는 것
 
 - [x] 데이터 타입 기준 Kafka topic 구조 정의
 - [x] `MarketCandleEvent` 계약 정의
