@@ -1,0 +1,186 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="900" viewBox="0 0 1500 900">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#3f3f46"/>
+    </marker>
+    <marker id="arrow-dashed" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#52525b"/>
+    </marker>
+    <style>
+      .canvas { fill: #fffef5; }
+      .section { fill: #fffef5; stroke: #c9d36b; stroke-width: 1.5; }
+      .box { fill: #eee9ff; stroke: #a99be8; stroke-width: 1.8; }
+      .soft { fill: #f7f4ff; stroke: #a99be8; stroke-width: 1.8; }
+      .title { fill: #3f3f1f; font-family: Arial, sans-serif; font-size: 16px; font-weight: 700; }
+      .label { fill: #33334d; font-family: Arial, sans-serif; font-size: 16px; }
+      .small { fill: #33334d; font-family: Arial, sans-serif; font-size: 14px; }
+      .edge { fill: none; stroke: #3f3f46; stroke-width: 2.2; marker-end: url(#arrow); }
+      .thin { fill: none; stroke: #3f3f46; stroke-width: 1.8; marker-end: url(#arrow); }
+      .dash { fill: none; stroke: #52525b; stroke-width: 2; stroke-dasharray: 5 5; marker-end: url(#arrow-dashed); }
+      .note { fill: #4b4b28; font-family: Arial, sans-serif; font-size: 14px; }
+    </style>
+  </defs>
+
+  <rect class="canvas" x="1" y="1" width="1498" height="898" rx="4"/>
+
+  <text class="title" x="750" y="25" text-anchor="middle">Collector Services</text>
+  <rect class="section" x="22" y="35" width="704" height="485"/>
+  <rect class="section" x="774" y="35" width="704" height="485"/>
+
+  <text class="title" x="374" y="58" text-anchor="middle">binance-collector-service</text>
+  <text class="title" x="1126" y="58" text-anchor="middle">bybit-collector-service</text>
+
+  <rect class="box" x="284" y="82" width="180" height="66"/>
+  <text class="label" x="374" y="108" text-anchor="middle">Binance Linear</text>
+  <text class="small" x="374" y="130" text-anchor="middle">Futures (USD-M)</text>
+
+  <rect class="box" x="1036" y="82" width="180" height="66"/>
+  <text class="label" x="1126" y="108" text-anchor="middle">Bybit Linear</text>
+  <text class="small" x="1126" y="130" text-anchor="middle">Futures (Linear)</text>
+
+  <rect class="box" x="249" y="184" width="250" height="44"/>
+  <text class="label" x="374" y="212" text-anchor="middle">BinanceWebSocketClient</text>
+
+  <rect class="box" x="1001" y="184" width="250" height="44"/>
+  <text class="label" x="1126" y="212" text-anchor="middle">BybitWebSocketClient</text>
+
+  <line class="edge" x1="374" y1="148" x2="374" y2="182"/>
+  <line class="edge" x1="1126" y1="148" x2="1126" y2="182"/>
+
+  <rect class="box" x="55" y="278" width="122" height="58"/>
+  <text class="small" x="116" y="302" text-anchor="middle">kline</text>
+  <text class="small" x="116" y="322" text-anchor="middle">15m candle</text>
+
+  <rect class="box" x="190" y="278" width="122" height="58"/>
+  <text class="small" x="251" y="302" text-anchor="middle">trade</text>
+  <text class="small" x="251" y="322" text-anchor="middle">체결</text>
+
+  <rect class="box" x="325" y="278" width="122" height="58"/>
+  <text class="small" x="386" y="302" text-anchor="middle">ticker</text>
+  <text class="small" x="386" y="322" text-anchor="middle">가격 상태</text>
+
+  <rect class="box" x="460" y="278" width="122" height="58"/>
+  <text class="small" x="521" y="302" text-anchor="middle">open interest</text>
+  <text class="small" x="521" y="322" text-anchor="middle">REST poller</text>
+
+  <rect class="box" x="595" y="278" width="122" height="58"/>
+  <text class="small" x="656" y="302" text-anchor="middle">funding rate</text>
+  <text class="small" x="656" y="322" text-anchor="middle">REST poller</text>
+
+  <rect class="box" x="807" y="278" width="122" height="58"/>
+  <text class="small" x="868" y="302" text-anchor="middle">kline</text>
+  <text class="small" x="868" y="322" text-anchor="middle">15m candle</text>
+
+  <rect class="box" x="942" y="278" width="122" height="58"/>
+  <text class="small" x="1003" y="302" text-anchor="middle">publicTrade</text>
+  <text class="small" x="1003" y="322" text-anchor="middle">체결</text>
+
+  <rect class="box" x="1077" y="278" width="122" height="58"/>
+  <text class="small" x="1138" y="302" text-anchor="middle">ticker</text>
+  <text class="small" x="1138" y="322" text-anchor="middle">가격 상태</text>
+
+  <rect class="box" x="1212" y="278" width="122" height="58"/>
+  <text class="small" x="1273" y="302" text-anchor="middle">open interest</text>
+  <text class="small" x="1273" y="322" text-anchor="middle">REST poller</text>
+
+  <rect class="box" x="1347" y="278" width="122" height="58"/>
+  <text class="small" x="1408" y="302" text-anchor="middle">funding rate</text>
+  <text class="small" x="1408" y="322" text-anchor="middle">REST poller</text>
+
+  <path class="thin" d="M374 228 C332 258 174 250 116 276"/>
+  <path class="thin" d="M374 228 C342 254 285 252 251 276"/>
+  <path class="thin" d="M374 228 C370 246 378 258 386 276"/>
+  <path class="thin" d="M374 228 C414 254 484 252 521 276"/>
+  <path class="thin" d="M374 228 C452 260 600 248 656 276"/>
+
+  <path class="thin" d="M1126 228 C1084 258 926 250 868 276"/>
+  <path class="thin" d="M1126 228 C1094 254 1037 252 1003 276"/>
+  <path class="thin" d="M1126 228 C1122 246 1130 258 1138 276"/>
+  <path class="thin" d="M1126 228 C1166 254 1236 252 1273 276"/>
+  <path class="thin" d="M1126 228 C1204 260 1352 248 1408 276"/>
+
+  <rect class="soft" x="245" y="374" width="258" height="44"/>
+  <text class="label" x="374" y="402" text-anchor="middle">BinanceMessageMapper</text>
+
+  <rect class="soft" x="997" y="374" width="258" height="44"/>
+  <text class="label" x="1126" y="402" text-anchor="middle">BybitMessageMapper</text>
+
+  <rect class="box" x="264" y="470" width="220" height="44"/>
+  <text class="label" x="374" y="498" text-anchor="middle">MarketDataProducer</text>
+
+  <rect class="box" x="1016" y="470" width="220" height="44"/>
+  <text class="label" x="1126" y="498" text-anchor="middle">MarketDataProducer</text>
+
+  <path class="edge" d="M116 336 C135 382 206 391 242 391"/>
+  <path class="edge" d="M251 336 C265 368 291 378 318 373"/>
+  <path class="edge" d="M386 336 C386 350 382 360 378 372"/>
+  <path class="edge" d="M521 336 C510 370 480 382 432 373"/>
+  <path class="edge" d="M656 336 C624 387 540 398 505 398"/>
+  <path class="edge" d="M374 418 C374 438 374 450 374 468"/>
+
+  <path class="edge" d="M868 336 C887 382 958 391 994 391"/>
+  <path class="edge" d="M1003 336 C1017 368 1043 378 1070 373"/>
+  <path class="edge" d="M1138 336 C1138 350 1134 360 1130 372"/>
+  <path class="edge" d="M1273 336 C1262 370 1232 382 1184 373"/>
+  <path class="edge" d="M1408 336 C1376 387 1292 398 1257 398"/>
+  <path class="edge" d="M1126 418 C1126 438 1126 450 1126 468"/>
+
+  <rect class="soft" x="640" y="535" width="220" height="44"/>
+  <text class="label" x="750" y="563" text-anchor="middle">Normalize</text>
+
+  <path class="dash" d="M374 514 C450 550 555 557 638 557"/>
+  <path class="dash" d="M1126 514 C1050 550 945 557 862 557"/>
+
+  <rect class="section" x="95" y="610" width="1310" height="125"/>
+  <text class="title" x="750" y="635" text-anchor="middle">core-domain</text>
+
+  <rect class="box" x="132" y="670" width="170" height="42"/>
+  <text class="small" x="217" y="696" text-anchor="middle">MarketCandleEvent</text>
+
+  <rect class="box" x="342" y="670" width="160" height="42"/>
+  <text class="small" x="422" y="696" text-anchor="middle">MarketTradeEvent</text>
+
+  <rect class="box" x="542" y="670" width="165" height="42"/>
+  <text class="small" x="624" y="696" text-anchor="middle">MarketTickerEvent</text>
+
+  <rect class="box" x="747" y="670" width="220" height="42"/>
+  <text class="small" x="857" y="696" text-anchor="middle">MarketOpenInterestEvent</text>
+
+  <rect class="box" x="1007" y="670" width="210" height="42"/>
+  <text class="small" x="1112" y="696" text-anchor="middle">MarketFundingRateEvent</text>
+
+  <rect class="box" x="1252" y="670" width="120" height="42"/>
+  <text class="small" x="1312" y="696" text-anchor="middle">MarketDlqEvent</text>
+
+  <path class="dash" d="M750 579 C750 595 750 600 750 608"/>
+
+  <rect class="section" x="95" y="760" width="1310" height="112"/>
+  <text class="title" x="750" y="785" text-anchor="middle">Kafka Cluster</text>
+
+  <rect class="box" x="125" y="815" width="170" height="42"/>
+  <text class="small" x="210" y="841" text-anchor="middle">market.candle.v1</text>
+
+  <rect class="box" x="345" y="815" width="160" height="42"/>
+  <text class="small" x="425" y="841" text-anchor="middle">market.trade.v1</text>
+
+  <rect class="box" x="550" y="815" width="165" height="42"/>
+  <text class="small" x="632" y="841" text-anchor="middle">market.ticker.v1</text>
+
+  <rect class="box" x="755" y="815" width="220" height="42"/>
+  <text class="small" x="865" y="841" text-anchor="middle">market.open-interest.v1</text>
+
+  <rect class="box" x="1015" y="815" width="210" height="42"/>
+  <text class="small" x="1120" y="841" text-anchor="middle">market.funding-rate.v1</text>
+
+  <rect class="box" x="1260" y="815" width="120" height="42"/>
+  <text class="small" x="1320" y="841" text-anchor="middle">market.dlq.v1</text>
+
+  <path class="edge" d="M217 712 C215 740 212 780 210 813"/>
+  <path class="edge" d="M422 712 C422 740 424 780 425 813"/>
+  <path class="edge" d="M624 712 C625 740 630 780 632 813"/>
+  <path class="edge" d="M857 712 C860 740 864 780 865 813"/>
+  <path class="edge" d="M1112 712 C1114 740 1118 780 1120 813"/>
+  <path class="edge" d="M1312 712 C1315 740 1318 780 1320 813"/>
+
+  <text class="note" x="750" y="875" text-anchor="middle">Kafka key: venue:symbol:interval 또는 venue:symbol</text>
+</svg>

@@ -1,130 +1,214 @@
 # Market Data Platform
 
-> **Binance·Alpaca 실시간 시장 데이터를 수집하고 Kafka 이벤트로 처리하는 모노레포 기반 MSA 플랫폼**
+> **코인 선물 시장 데이터를 수집해 Kafka로 발행하는 실시간 데이터 컨트롤러 프로젝트**
 
-Binance Spot과 Alpaca IEX WebSocket 데이터를 수집해 공통 도메인 이벤트로 정규화하고, Kafka 토픽으로 발행합니다. 이후 저장·피드 서비스는 공급자별 원본 형식을 알 필요 없이 공통 이벤트를 소비합니다.
+Binance Linear Futures (USD-M)와 Bybit Linear Futures (Linear)의 시장 데이터를 수집해 공통 도메인 이벤트로 정규화하고 Kafka 토픽으로 발행합니다.  
+최종 목표는 거래소별 WebSocket/REST 응답을 내부 표준 이벤트로 변환해, 뒤쪽 서비스가 거래소 API 차이를 몰라도 동일한 Kafka 토픽을 소비할 수 있게 만드는 것입니다.
 
-## Architecture
+---
 
-<img width="1276" height="896" alt="Market Data Platform Architecture" src="https://github.com/user-attachments/assets/6daa7060-8161-40a9-b795-7a88b5e9c48e" />
+## 1. 최종 구조
 
-## Data Flow
+> 최종적으로 이 프로젝트는 거래소 API 차이를 숨기고, 표준화된 시장 데이터 이벤트를 Kafka로 발행하는 수집 계층이 됩니다.
 
-```
-Provider WebSocket
-  → Provider DTO
-  → Common Domain Event
-  → Kafka Topic
-  → Consumer Services
+![Collector Architecture](docs/collector/collector-architecture.svg)
+
+```text
+Exchange WebSocket / REST
+        ↓
+Collector Services
+        ↓
+Normalize
+        ↓
+Kafka Topics
 ```
 
 | 계층 | 역할 |
 | --- | --- |
-| Collector Services | 공급자별 WebSocket 연결, 인증, 구독, DTO 파싱 및 재연결 처리 |
-| core-domain | 체결·호가·캔들·실패 이벤트의 공통 계약 제공 |
-| Kafka Cluster | 이벤트 종류별 토픽을 통한 비동기 데이터 전달 |
-| Consumer Services | Redis·MongoDB 저장 및 SSE/WebSocket 실시간 피드 제공 |
+| Collector Services | 거래소별 WebSocket/REST 연결, 구독, DTO 파싱, 재연결, Kafka 발행 |
+| core-domain | 시장 데이터 공통 이벤트와 Kafka 토픽 계약 제공 |
+| Kafka Cluster | 데이터 타입별 토픽으로 이벤트 전달 |
 
-## Modules
+---
 
-```
+## 2. 수집 대상
+
+> 이 컨트롤러 프로젝트는 거래소별 데이터 수집과 표준화된 이벤트 발행만 담당합니다.
+
+| 데이터 | 역할 |
+| --- | --- |
+| Kline | OHLCV 기반 차트와 기술적 지표 계산의 기준 데이터 |
+| Trade | 실시간 체결 흐름과 매수·매도 모멘텀 판단 |
+| Ticker / Mark Price / Index Price | 현재가, 선물 기준가, 지수 가격 기반 시장 상태 확인 |
+| Open Interest | 신규 포지션 유입과 포지션 청산 흐름 판단 |
+| Funding Rate | 롱/숏 과열과 파생시장 쏠림 판단 |
+
+---
+
+## 3. Modules
+
+```text
 market-data-platform/
-├── core-domain/                 # 공통 이벤트 계약
-├── binance-collector-service/   # Binance Spot collector
-├── alpaca-collector-service/    # Alpaca IEX collector
+├── core-domain/                 # 공통 이벤트 / Kafka 토픽 계약
+├── binance-collector-service/   # Binance Linear Futures (USD-M) 수집
+├── bybit-collector-service/     # Bybit Linear Futures (Linear) 수집
 ├── docker-compose.yml           # 로컬 Kafka 실행
 ├── build.gradle
 └── settings.gradle
 ```
 
-| 모듈 | 책임 | 상태 |
+| 모듈 | 책임 | 현재 상태 |
 | --- | --- | --- |
-| `core-domain` | 공통 이벤트 모델과 스키마 계약 | 구현됨 |
-| `binance-collector-service` | BTCUSDT 체결·최우선 호가·1분봉 수집 | 구현됨 |
-| `alpaca-collector-service` | AAPL 체결 수집 및 quote·bar 확장 | 체결 구현, 확장 진행 예정 |
-| `market-data-storage-service` | 최신 시세·시계열 데이터 저장 | 예정 |
-| `market-data-feed-service` | 클라이언트 실시간 전송 | 예정 |
+| `core-domain` | `MarketCandleEvent`, `MarketDlqEvent`, Kafka topic 상수 관리 | 구현됨 |
+| `binance-collector-service` | Binance Linear Futures (USD-M) WebSocket Kline 수집, 정규화, Kafka 발행 | Kline 구현됨 |
+| `bybit-collector-service` | Bybit Linear Futures (Linear) WebSocket Kline 수집, 정규화, Kafka 발행 | Kline 구현됨 |
 
-## Event & Topic Contract
+---
 
-| 데이터 | 공통 이벤트 | Kafka 토픽 | Kafka key |
+## 4. Kafka Topics
+
+Kafka topic은 거래소 기준이 아니라 데이터 타입 기준으로 구성합니다.  
+거래소 구분은 topic이 아니라 이벤트 내부의 `provider`, `venue` 값으로 처리합니다.
+
+| Topic | Event | 용도 | 상태 |
 | --- | --- | --- | --- |
-| 체결 | `MarketTickEvent` | `market.trade.v1` | `provider |
-| 최우선 호가 | `MarketBookTickerEvent` | `market.quote.v1` | `provider |
-| 1분봉·정정 캔들 | `MarketCandleEvent` | `market.bar.v1` | `provider |
-| 파싱·검증 실패 | `MarketDlqEvent` | `market.dlq.v1` | 원본 이벤트 key |
+| `market.candle.v1` | `MarketCandleEvent` | Kline/Candle 데이터 발행 | 구현됨 |
+| `market.trade.v1` | 예정 | 실시간 체결 데이터 발행 | 예정 |
+| `market.ticker.v1` | 예정 | 현재가, Mark Price, Index Price 발행 | 예정 |
+| `market.open-interest.v1` | 예정 | Open Interest 데이터 발행 | 예정 |
+| `market.funding-rate.v1` | 예정 | Funding Rate 데이터 발행 | 예정 |
+| `market.dlq.v1` | `MarketDlqEvent` | 파싱·검증 실패 이벤트 발행 | 구현됨 |
 
-토픽은 종목별이 아니라 **이벤트 종류별**로 구분합니다. 예를 들어 `BTCUSDT`, `AAPL`, `ETHUSDT`의 체결 이벤트는 모두 `market.trade.v1`으로 발행하고, Kafka key와 이벤트의 `symbol`로 종목을 구분합니다.
+---
 
-## Provider Mapping
+## 5. Data Flow
 
-| 데이터 | Binance Spot | Alpaca IEX | 공통 이벤트 |
-| --- | --- | --- | --- |
-| 체결 | `@trade` | `trades` | `MarketTickEvent` |
-| 최우선 호가 | `@bookTicker` | `quotes` | `MarketBookTickerEvent` |
-| 1분봉 | `@kline_1m` | `bars` | `MarketCandleEvent` |
-| 1분봉 정정 | 진행 중 캔들 갱신 | `updatedBars` | `MarketCandleEvent` |
-| 오류 | 파싱·검증 예외 | 파싱·검증 예외 | `MarketDlqEvent` |
+> Binance와 Bybit의 원본 JSON 구조는 다르지만, Kafka에 들어가는 이벤트는 동일한 형태를 유지합니다.
 
-> Binance는 진행 중인 1분봉을 반복 갱신합니다. Alpaca `bars`는 확정 봉을, `updatedBars`는 늦은 체결에 따른 과거 봉 정정을 전달합니다.
+```text
+Provider WebSocket
+  → Provider DTO
+  → Message Mapper
+  → Common Domain Event
+  → Kafka Topic
+  → Downstream Services
+```
 
-## Quick Start
+```text
+Binance Linear Futures Kline JSON
+        ↓
+BinanceMessageMapper
+        ↓
+MarketCandleEvent
+        ↓
+market.candle.v1
+```
 
-### 1. Kafka 실행
+```text
+Bybit Linear Futures Kline JSON
+        ↓
+BybitMessageMapper
+        ↓
+MarketCandleEvent
+        ↓
+market.candle.v1
+```
+
+---
+
+## 6. 문서
+
+구현 범위와 완료 기준은 별도 문서에서 관리합니다.
+
+| 문서                                                           | 내용 |
+|--------------------------------------------------------------| --- |
+| [Collector MVP 1.0.0](docs/collector/collector-mvp-1.0.0.md) | 1차 MVP 세부 범위, Kafka key, 이벤트 계약, 완료 기준 |
+
+---
+
+## 7. Quick Start
+
+### Kafka 실행
 
 ```bash
 docker compose up -d
 ```
 
-### 2. Alpaca 환경변수 설정
-
-```bash
-export ALPACA_API_KEY='YOUR_ALPACA_API_KEY'
-export ALPACA_SECRET_KEY='YOUR_ALPACA_SECRET_KEY'
-```
-
-### 3. 빌드 및 collector 실행
+### 빌드
 
 ```bash
 ./gradlew clean build
-
-# Binance collector
-./gradlew :binance-collector-service:bootRun
-
-# Alpaca collector
-./gradlew :alpaca-collector-service:bootRun
 ```
 
-### 4. Kafka 이벤트 확인
+### Collector 실행
+
+```bash
+./gradlew :binance-collector-service:bootRun
+./gradlew :bybit-collector-service:bootRun
+```
+
+### Kafka 이벤트 확인
 
 ```bash
 docker exec -it kafka kafka-console-consumer \
   --bootstrap-server localhost:9092 \
-  --topic market.trade.v1 \
+  --topic market.candle.v1 \
   --from-beginning
 ```
 
-## Configuration
+---
 
-Alpaca API key와 secret은 Git에 커밋하지 않고 환경변수로 주입합니다.
+## 8. 진행 사항
 
-```yaml
-alpaca:
-  websocket:
-    url: wss://stream.data.alpaca.markets/v2/iex
-    key: ${ALPACA_API_KEY}
-    secret: ${ALPACA_SECRET_KEY}
-    symbols: AAPL
-```
+### 공통 계약
 
-`.env`, `application-local.yml`, 인증서·키 파일, Docker 로컬 데이터는 `.gitignore`로 제외합니다.
+- [x] 데이터 타입 기준 Kafka topic 구조
+- [x] `MarketCandleEvent`
+- [x] `MarketDlqEvent`
+- [ ] `MarketTradeEvent`
+- [ ] `MarketTickerEvent`
+- [ ] `MarketOpenInterestEvent`
+- [ ] `MarketFundingRateEvent`
 
-## Roadmap
+### Binance Linear Futures (USD-M)
 
-| 단계 | 작업 |
-| --- | --- |
-| 1 | Alpaca `quotes`, `bars`, `updatedBars` 수집 추가 |
-| 2 | storage-service에서 Redis·MongoDB 저장 구현 |
-| 3 | feed-service의 SSE/WebSocket 전송 구현 |
-| 4 | 데이터 신선도·DLQ·consumer lag 관측성 추가 |
-| 5 | 서비스별 Docker 이미지와 CI/CD 배포 구성 |
+- [x] Kline WebSocket 수집
+- [x] Kline → `MarketCandleEvent` 정규화
+- [x] `market.candle.v1` 발행
+- [ ] Trade WebSocket 수집
+- [ ] Trade → `MarketTradeEvent` 정규화
+- [ ] `market.trade.v1` 발행
+- [ ] Ticker / Mark Price / Index Price 수집
+- [ ] Ticker → `MarketTickerEvent` 정규화
+- [ ] `market.ticker.v1` 발행
+- [ ] Open Interest REST 수집
+- [ ] Open Interest → `MarketOpenInterestEvent` 정규화
+- [ ] `market.open-interest.v1` 발행
+- [ ] Funding Rate REST 수집
+- [ ] Funding Rate → `MarketFundingRateEvent` 정규화
+- [ ] `market.funding-rate.v1` 발행
+
+### Bybit Linear Futures (Linear)
+
+- [x] Kline WebSocket 수집
+- [x] Kline → `MarketCandleEvent` 정규화
+- [x] `market.candle.v1` 발행
+- [ ] Trade WebSocket 수집
+- [ ] Trade → `MarketTradeEvent` 정규화
+- [ ] `market.trade.v1` 발행
+- [ ] Ticker / Mark Price / Index Price 수집
+- [ ] Ticker → `MarketTickerEvent` 정규화
+- [ ] `market.ticker.v1` 발행
+- [ ] Open Interest REST 수집
+- [ ] Open Interest → `MarketOpenInterestEvent` 정규화
+- [ ] `market.open-interest.v1` 발행
+- [ ] Funding Rate REST 수집
+- [ ] Funding Rate → `MarketFundingRateEvent` 정규화
+- [ ] `market.funding-rate.v1` 발행
+
+### 검증
+
+- [x] Binance Linear Futures Kline mapper 테스트
+- [x] Bybit Linear Futures Kline mapper 테스트
+- [ ] 실제 Kafka 환경에서 Binance candle 이벤트 확인
+- [ ] 실제 Kafka 환경에서 Bybit candle 이벤트 확인
