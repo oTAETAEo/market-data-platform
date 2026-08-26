@@ -9,8 +9,6 @@ spring:
 
 binance:
   websocket:
-    base-url: wss://stream.binance.com:9443/stream
+    base-url: wss://fstream.binance.com/public/stream
     symbols: BTCUSDT
-    kline-interval: 1m
-    depth-levels: 20
-    depth-update-interval: 100ms
+    kline-interval: 15m

@@ -1,10 +1,7 @@
 package com.marketdata.collector.binance.service;
 
-import com.marketdata.core.event.MarketBookTickerEvent;
 import com.marketdata.core.event.MarketCandleEvent;
 import com.marketdata.core.event.MarketDlqEvent;
-import com.marketdata.core.event.MarketOrderBookEvent;
-import com.marketdata.core.event.MarketTickEvent;
 import com.marketdata.core.kafka.MarketTopics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,20 +18,8 @@ public class MarketDataProducer {
 
     private final KafkaSender<String, Object> kafkaSender;
 
-    public Mono<Void> sendTick(MarketTickEvent event) {
-        return send(MarketTopics.TRADE, event.symbol(), event, "TRADE");
-    }
-
-    public Mono<Void> sendBookTicker(MarketBookTickerEvent event) {
-        return send(MarketTopics.QUOTE, event.symbol(), event, "QUOTE");
-    }
-
-    public Mono<Void> sendCandle(MarketCandleEvent event) {
-        return send(MarketTopics.BAR, event.symbol(), event, "BAR");
-    }
-
-    public Mono<Void> sendOrderBook(MarketOrderBookEvent event) {
-        return send(MarketTopics.DEPTH, event.symbol(), event, "DEPTH");
+    public Mono<Void> sendCandle(MarketCandleEvent event, String key) {
+        return send(MarketTopics.CANDLE, key, event, "CANDLE");
     }
 
     public Mono<Void> sendDlq(MarketDlqEvent event) {

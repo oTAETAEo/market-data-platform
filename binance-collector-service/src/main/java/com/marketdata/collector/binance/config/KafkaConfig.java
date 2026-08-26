@@ -28,23 +28,8 @@ public class KafkaConfig {
     private String bootstrapServers;
 
     @Bean
-    public NewTopic marketTradesTopic() {
-        return topic(MarketTopics.TRADE);
-    }
-
-    @Bean
-    public NewTopic marketQuotesTopic() {
-        return topic(MarketTopics.QUOTE);
-    }
-
-    @Bean
-    public NewTopic marketBarsTopic() {
-        return topic(MarketTopics.BAR);
-    }
-
-    @Bean
-    public NewTopic marketDepthTopic() {
-        return topic(MarketTopics.DEPTH);
+    public NewTopic marketCandlesTopic() {
+        return topic(MarketTopics.CANDLE);
     }
 
     @Bean

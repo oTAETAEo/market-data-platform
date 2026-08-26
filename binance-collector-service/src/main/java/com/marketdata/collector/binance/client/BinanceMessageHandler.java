@@ -33,17 +33,9 @@ public class BinanceMessageHandler {
 
     private Mono<Void> route(String jsonPayload, JsonNode data, String stream, Instant receivedAt) {
         try {
-            if (stream.endsWith("@trade") || "trade".equals(data.path("e").asText())) {
-                return producer.sendTick(mapper.toTickEvent(data, receivedAt));
-            }
-            if (stream.endsWith("@bookTicker")) {
-                return producer.sendBookTicker(mapper.toBookTickerEvent(data, receivedAt));
-            }
-            if (stream.contains("@depth")) {
-                return producer.sendOrderBook(mapper.toOrderBookEvent(data, stream, receivedAt));
-            }
             if (stream.contains("@kline_") || "kline".equals(data.path("e").asText())) {
-                return producer.sendCandle(mapper.toCandleEvent(data, receivedAt));
+                var event = mapper.toCandleEvent(data, receivedAt);
+                return producer.sendCandle(event, mapper.candleKey(event));
             }
 
             log.debug("처리 대상이 아닌 Binance WebSocket 메시지를 무시했습니다: {}", jsonPayload);
