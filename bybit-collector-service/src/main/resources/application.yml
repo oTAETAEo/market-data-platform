@@ -1,0 +1,14 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: bybit-collector-service
+  kafka:
+    bootstrap-servers: localhost:9092
+
+bybit:
+  websocket:
+    base-url: wss://stream.bybit.com/v5/public/linear
+    symbols: BTCUSDT
+    kline-interval: 15

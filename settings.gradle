@@ -2,3 +2,4 @@ rootProject.name = 'market-data-platform'
 
 include 'core-domain'
 include 'binance-collector-service'
+include 'bybit-collector-service'
