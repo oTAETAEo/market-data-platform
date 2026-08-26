@@ -37,8 +37,7 @@ subprojects {
 }
 
 configure([
-        project(':binance-collector-service'),
-        project(':alpaca-collector-service')
+        project(':binance-collector-service')
 ]) {
     dependencies {
         implementation 'io.netty:netty-resolver-dns-native-macos::osx-aarch_64'
