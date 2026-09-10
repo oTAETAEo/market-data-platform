@@ -1,154 +1,95 @@
 # Market Data Platform
 
-> **코인 선물 시장 데이터를 수집해 공통 이벤트로 정규화하고 Kafka로 발행하는 실시간 데이터 수집 플랫폼**
+암호화폐 시장 데이터를 로컬에서 수집하고, AI 분석에 사용할 수 있는 형태로 준비합니다.
 
-Binance USD-M Futures와 Bybit Linear의 시장 데이터를 수집해 공통 도메인 이벤트로 정규화하고 Kafka 토픽으로 발행합니다.  
-최종 목표는 거래소별 WebSocket/REST 응답을 내부 표준 이벤트로 변환해, 뒤쪽 서비스가 거래소 API 차이를 몰라도 동일한 Kafka 토픽을 소비할 수 있게 만드는 것입니다.
+Market Data Platform은 Binance, Bybit 같은 거래소의 공개 암호화폐 선물 시장 데이터를 수집하고, 거래소별 메시지를 공통 시장 이벤트로 정규화하기 위한 오픈소스 Java 프로젝트입니다.
+
+현재는 Binance USD-M Futures와 Bybit Linear의 candle 데이터 수집에 집중하고 있습니다. 장기적으로는 사용자가 관심 있는 심볼의 시장 데이터를 로컬에서 수집하고, 정규화된 스트림을 확인하며, 원할 때만 AI 분석을 요청할 수 있는 로컬 우선 데스크톱 도구를 목표로 합니다.
 
 
-## 1. 최종 구조
+## AI에게 타점 분석을 요청하기 전에
 
-> 최종적으로 이 프로젝트는 거래소 API 차이를 숨기고, 표준화된 시장 데이터 이벤트를 Kafka로 발행하는 수집 계층이 됩니다.
+어려운 부분은 LLM에 프롬프트를 보내는 것이 아니라, 모델이 판단할 수 있을 만큼 깨끗하고 최근성이 있으며 일관된 시장 맥락을 준비하는 것입니다.
 
-![Collector Architecture](docs/collector/collector-architecture.svg)
+거래소의 원본 스트림은 시끄럽고, 거래소마다 형식이 다르며, 그대로 AI provider에 보내기에는 데이터 양이 너무 클 수 있습니다. 이 프로젝트는 수집과 정규화 계층을 로컬에 두고, 이후 TradingAgents나 다른 LLM workflow에서 사용할 수 있는 작은 시장 요약을 준비하는 방향으로 설계합니다.
+
+
+## 경계 한눈에 보기
 
 ```text
-Exchange WebSocket / REST
+거래소 공개 스트림
         ↓
-Collector Services
+로컬 collector
         ↓
-Normalize
+공통 시장 이벤트
         ↓
-Kafka Topics
+로컬 market engine
+        ├─ 차트와 상태 표시
+        ├─ 로컬 저장
+        └─ 요청 시 AI 분석 context 생성
 ```
 
-| 계층 | 역할 |
+| 로컬에 남는 것 | 사용자 요청 시에만 외부로 나가는 것 |
 | --- | --- |
-| Collector Services | 거래소별 WebSocket/REST 연결, 구독, DTO 파싱, 재연결, Kafka 발행 |
-| core-domain | 시장 데이터 공통 이벤트와 Kafka 토픽 계약 제공 |
-| Kafka Cluster | 데이터 타입별 토픽으로 이벤트 전달 |
+| 거래소 메시지, 정규화 이벤트, 로컬 버퍼, 로컬 저장 데이터, API key | 선택한 AI provider로 전송되는 요약 시장 context |
 
 
-## 2. 수집 대상
+## 현재 제공되는 것
 
-> 이 데이터 수집 플랫폼은 거래소별 데이터 수집과 표준화된 이벤트 발행만 담당합니다.
-
-| 데이터 | 역할 |
+| 영역 | 현재 상태 |
 | --- | --- |
-| Kline | OHLCV 기반 차트와 기술적 지표 계산의 기준 데이터 |
-| Trade | 실시간 체결 흐름과 매수·매도 모멘텀 판단 |
-| Ticker / Mark Price / Index Price | 현재가, 선물 기준가, 지수 가격 기반 시장 상태 확인 |
-| Open Interest | 신규 포지션 유입과 포지션 청산 흐름 판단 |
-| Funding Rate | 롱/숏 과열과 파생시장 쏠림 판단 |
+| Core domain | `MarketCandleEvent`, `MarketDlqEvent`, 공통 이벤트 계약 |
+| Binance collector | Binance USD-M Futures Kline WebSocket 수집과 정규화 |
+| Bybit collector | Bybit Linear Kline WebSocket 수집과 정규화 |
+| Build system | Gradle 멀티 모듈 Java 프로젝트 |
+| Local infrastructure | 로컬 스트림 검증을 위한 Docker Compose 파일 |
+| Documentation | Collector MVP 범위와 이벤트 계약 문서 |
 
 
-## 3. Modules
+## 의도적으로 집중하는 범위
+
+이 프로젝트는 자동 매매 봇, 호스팅형 시그널 서비스, 거래소 개인 계정 관리 도구가 아닙니다.
+
+기본 범위에는 주문 실행이 포함되지 않습니다. 현재 공개 시장 데이터 수집 범위에서는 거래소 API key도 필요하지 않습니다. 이 프로젝트는 무거운 분석, 저장소, 데스크톱 UI 계층을 붙이기 전에 로컬 수집과 정규화된 시장 이벤트를 먼저 안정화하는 데 집중합니다.
+
+
+## 데이터 범위
+
+현재 구현은 candle 데이터에서 시작합니다. 이후 단기 트레이딩 분석에 필요한 입력을 중심으로 시장 데이터 모델을 확장할 계획입니다.
+
+| 데이터 | 역할 | 상태 |
+| --- | --- | --- |
+| Kline / Candle | 차트와 지표 계산을 위한 OHLCV 기준 데이터 | 사용 가능 |
+| Trade | 체결 흐름과 매수/매도 압력 판단 | 예정 |
+| Ticker / Mark Price / Index Price | 현재가와 선물 기준 가격 확인 | 예정 |
+| Open Interest | 포지션 유입과 이탈 흐름 판단 | 예정 |
+| Funding Rate | 롱/숏 과열과 파생시장 쏠림 판단 | 예정 |
+| Order Book Top N | spread, 유동성, 호가 불균형 판단 | 예정 |
+
+
+## 리포지토리 구조
 
 ```text
 market-data-platform/
-├── core-domain/                 # 공통 이벤트 / Kafka 토픽 계약
-├── binance-collector-service/   # Binance USD-M Futures 수집
-├── bybit-collector-service/     # Bybit Linear 수집
-├── docker-compose.yml           # 로컬 Kafka 실행
+├── core-domain/
+├── binance-collector-service/
+├── bybit-collector-service/
+├── docs/
+├── docker-compose.yml
 ├── build.gradle
 └── settings.gradle
 ```
 
-| 모듈 | 책임 | 현재 상태 |
-| --- | --- | --- |
-| `core-domain` | `MarketCandleEvent`, `MarketDlqEvent`, Kafka topic 상수 관리 | 구현됨 |
-| `binance-collector-service` | Binance USD-M Futures WebSocket Kline 수집, 정규화, Kafka 발행 | Kline 구현 / 통합 검증 대기 |
-| `bybit-collector-service` | Bybit Linear WebSocket Kline 수집, 정규화, Kafka 발행 | Kline 구현 / 통합 검증 대기 |
+| 모듈 | 책임 |
+| --- | --- |
+| `core-domain` | 공통 시장 이벤트 record와 공유 계약 |
+| `binance-collector-service` | Binance USD-M Futures public Kline 수집 |
+| `bybit-collector-service` | Bybit Linear public Kline 수집 |
 
 
-## 4. Kafka Topics
+## 이벤트 예시
 
-> Kafka topic은 거래소 기준이 아니라 데이터 타입 기준으로 구성합니다. 거래소 구분은 topic이 아니라 이벤트 내부의 `provider`, `venue` 값으로 처리합니다.
-
-| Topic | Event | 용도 | 상태 |
-| --- | --- | --- | --- |
-| `market.candle.v1` | `MarketCandleEvent` | Kline/Candle 데이터 발행 | 구현됨 |
-| `market.trade.v1` | 예정 | 실시간 체결 데이터 발행 | 예정 |
-| `market.ticker.v1` | 예정 | 현재가, Mark Price, Index Price 발행 | 예정 |
-| `market.open-interest.v1` | 예정 | Open Interest 데이터 발행 | 예정 |
-| `market.funding-rate.v1` | 예정 | Funding Rate 데이터 발행 | 예정 |
-| `market.dlq.v1` | `MarketDlqEvent` | 파싱·검증 실패 이벤트 발행 | 구현됨 |
-
-
-## 5. Data Flow
-
-> Binance와 Bybit의 원본 JSON 구조는 다르지만, Kafka에 들어가는 이벤트는 동일한 형태를 유지합니다.
-
-```text
-Provider WebSocket
-  → Provider DTO
-  → Message Mapper
-  → Common Domain Event
-  → Kafka Topic
-  → Downstream Services
-```
-
-```text
-Binance USD-M Futures Kline JSON
-        ↓
-BinanceMessageMapper
-        ↓
-MarketCandleEvent
-        ↓
-market.candle.v1
-```
-
-```text
-Bybit Linear Kline JSON
-        ↓
-BybitMessageMapper
-        ↓
-MarketCandleEvent
-        ↓
-market.candle.v1
-```
-
-
-## 6. 문서
-
-> 구현 범위와 완료 기준은 별도 문서에서 관리합니다.
-
-| 문서                                                           | 내용 |
-|--------------------------------------------------------------| --- |
-| [Collector MVP 1.0.0](docs/collector/collector-mvp-1.0.0.md) | 1차 MVP 세부 범위, Kafka key, 이벤트 계약, 완료 기준 |
-
-
-## 7. Quick Start
-
-### Kafka 실행
-
-```bash
-docker compose up -d
-```
-
-### 빌드
-
-```bash
-./gradlew clean build
-```
-
-### Collector 실행
-
-```bash
-./gradlew :binance-collector-service:bootRun
-./gradlew :bybit-collector-service:bootRun
-```
-
-### Kafka 이벤트 확인
-
-```bash
-docker exec -it kafka kafka-console-consumer \
-  --bootstrap-server localhost:9092 \
-  --topic market.candle.v1 \
-  --from-beginning
-```
-
-아래와 같은 `MarketCandleEvent`가 출력되면 collector → normalize → Kafka 흐름이 동작하는 것입니다.
+정규화된 candle event는 다음과 같은 형태를 가집니다.
 
 ```json
 {
@@ -166,64 +107,104 @@ docker exec -it kafka kafka-console-consumer \
 }
 ```
 
-`market.candle.v1`에서 아래 두 key가 모두 확인되면 MVP 1.0 통합 검증 완료로 봅니다.
 
-```text
-BINANCE_USDM_FUTURES:BTCUSDT:15m
-BYBIT_LINEAR:BTCUSDT:15m
+## 소스에서 실행하기
+
+필요한 환경:
+
+- Java 21
+- Docker, 로컬 스트림 검증용
+
+프로젝트를 빌드합니다.
+
+```bash
+./gradlew clean build
+```
+
+로컬 인프라를 실행합니다.
+
+```bash
+docker compose up -d
+```
+
+collector를 실행합니다.
+
+```bash
+./gradlew :binance-collector-service:bootRun
+./gradlew :bybit-collector-service:bootRun
 ```
 
 
-## 8. Roadmap
+## 프로젝트 방향
 
-### MVP 1.0 — Candle Ingestion
+계획하고 있는 방향은 로컬 우선 시장 분석 앱입니다.
 
-> 완료 기준: Binance USD-M Futures와 Bybit Linear의 BTCUSDT 15m Kline이 동일한 `MarketCandleEvent` 형식으로 `market.candle.v1`에 정상 발행되는 것
+```text
+market-engine      # rolling buffer, feature 계산, AI context builder
+local-storage      # memory-only와 local persistence 정책
+ai-adapter         # TradingAgents와 LLM provider 연동
+desktop-app        # Tauri 데스크톱 UI
+```
 
-- [x] 데이터 타입 기준 Kafka topic 구조 정의
-- [x] `MarketCandleEvent` 계약 정의
-- [x] `MarketDlqEvent` 계약 정의
-- [x] Binance USD-M Futures Kline WebSocket 수집
-- [x] Binance Kline → `MarketCandleEvent` 정규화
-- [x] Binance candle 이벤트 `market.candle.v1` 발행
-- [x] Bybit Linear Kline WebSocket 수집
-- [x] Bybit Kline → `MarketCandleEvent` 정규화
-- [x] Bybit candle 이벤트 `market.candle.v1` 발행
-- [x] Binance Kline mapper 테스트
-- [x] Bybit Kline mapper 테스트
-- [ ] 실제 Kafka 환경에서 Binance candle 이벤트 확인
-- [ ] 실제 Kafka 환경에서 Bybit candle 이벤트 확인
+의도하는 데스크톱 흐름은 다음과 같습니다.
 
-### MVP 1.1 — Trade / Ticker
+```text
+1. 거래소와 심볼을 선택합니다.
+2. 공개 시장 데이터를 로컬에서 수집합니다.
+3. 최근 스트림을 정규화하고 요약합니다.
+4. Analyze 버튼을 누릅니다.
+5. 요약된 시장 context만 선택한 AI provider에 보냅니다.
+6. 로컬 UI에서 분석 결과를 확인합니다.
+```
 
+
+## 로드맵
+
+### Market Data
+
+- [x] `MarketCandleEvent`
+- [x] `MarketDlqEvent`
+- [x] Binance USD-M Futures Kline 수집
+- [x] Binance Kline to `MarketCandleEvent` 정규화
+- [x] Bybit Linear Kline 수집
+- [x] Bybit Kline to `MarketCandleEvent` 정규화
 - [ ] `MarketTradeEvent`
 - [ ] `MarketTickerEvent`
-- [ ] Binance Trade WebSocket 수집
-- [ ] Trade → `MarketTradeEvent` 정규화
-- [ ] `market.trade.v1` 발행
-- [ ] Binance Ticker / Mark Price / Index Price 수집
-- [ ] Ticker → `MarketTickerEvent` 정규화
-- [ ] `market.ticker.v1` 발행
-- [ ] Bybit Trade WebSocket 수집
-- [ ] Trade → `MarketTradeEvent` 정규화
-- [ ] `market.trade.v1` 발행
-- [ ] Bybit Ticker / Mark Price / Index Price 수집
-- [ ] Ticker → `MarketTickerEvent` 정규화
-- [ ] `market.ticker.v1` 발행
-
-### MVP 1.2 — Derivatives Data
-
 - [ ] `MarketOpenInterestEvent`
 - [ ] `MarketFundingRateEvent`
-- [ ] Binance Open Interest REST 수집
-- [ ] Open Interest → `MarketOpenInterestEvent` 정규화
-- [ ] `market.open-interest.v1` 발행
-- [ ] Binance Funding Rate REST 수집
-- [ ] Funding Rate → `MarketFundingRateEvent` 정규화
-- [ ] `market.funding-rate.v1` 발행
-- [ ] Bybit Open Interest REST 수집
-- [ ] Open Interest → `MarketOpenInterestEvent` 정규화
-- [ ] `market.open-interest.v1` 발행
-- [ ] Bybit Funding Rate REST 수집
-- [ ] Funding Rate → `MarketFundingRateEvent` 정규화
-- [ ] `market.funding-rate.v1` 발행
+- [ ] Order book top N summary
+
+### Local Engine
+
+- [ ] Local event bus
+- [ ] Memory-only rolling buffer
+- [ ] SQLite 또는 DuckDB 저장
+- [ ] Retention policy
+- [ ] 1s/5s aggregation
+- [ ] Volume, volatility, trade imbalance feature
+- [ ] AI analysis context builder
+
+### AI Analysis
+
+- [ ] TradingAgents adapter
+- [ ] LLM provider configuration
+- [ ] Local API key storage policy
+- [ ] Analysis request/result model
+- [ ] Analysis report model
+
+### Desktop App
+
+- [ ] Tauri desktop app
+- [ ] Exchange selection UI
+- [ ] Symbol selection UI
+- [ ] Data mode selection UI
+- [ ] Collection start/stop UI
+- [ ] Realtime chart/status UI
+- [ ] Analysis button and result view
+
+
+## 문서
+
+| 문서 | 내용 |
+| --- | --- |
+| [Collector MVP 1.0.0](docs/collector/collector-mvp-1.0.0.md) | Collector 범위, 이벤트 계약, 완료 기준 |
