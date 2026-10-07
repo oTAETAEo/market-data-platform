@@ -102,7 +102,7 @@ BYBIT_LINEAR:BTCUSDT:15m
 
 ## 검증 경로
 
-현재 구현에서는 정규화된 이벤트를 로컬에서 확인하기 위한 출력 경로로 Kafka를 사용합니다. Kafka는 Collector MVP의 검증 수단이며, 로컬 앱 방향에서는 내부 이벤트 버스 또는 로컬 저장소가 같은 역할을 맡을 수 있습니다.
+현재 구현에서는 정규화된 이벤트를 로컬에서 확인하기 위한 출력 경로로 Kafka를 사용합니다. Kafka는 Collector MVP의 검증 수단이며, 로컬 앱 방향에서는 `modules:market-engine`의 내부 이벤트 버스 또는 `modules:local-storage`가 같은 역할을 맡을 수 있습니다.
 
 현재 검증 대상:
 
@@ -116,8 +116,7 @@ Provider WebSocket
 
 ## 현재 상태
 
-- [x] Alpaca collector 제거
-- [x] `core-domain` candle 계약 정리
+- [x] `modules:core-domain` candle 계약 정리
 - [x] Binance USD-M Futures Kline 적용
 - [x] Bybit Linear Kline 적용
 - [x] Binance mapper 테스트
@@ -130,11 +129,11 @@ Provider WebSocket
 
 Collector 계약이 안정화되면 다음 순서로 확장합니다.
 
-1. `MarketTradeEvent`, `MarketTickerEvent` 추가
-2. `MarketOpenInterestEvent`, `MarketFundingRateEvent` 추가
-3. 로컬 이벤트 버스 추가
-4. memory-only rolling buffer 추가
-5. SQLite 또는 DuckDB 저장소 추가
-6. 1s/5s 단위 feature aggregation 추가
-7. AI analysis context builder 추가
-8. TradingAgents 또는 LLM adapter 연결
+1. `modules:core-domain`에 `MarketTradeEvent`, `MarketTickerEvent` 추가
+2. `modules:core-domain`에 `MarketOpenInterestEvent`, `MarketFundingRateEvent` 추가
+3. `modules:market-engine`에 로컬 이벤트 버스 추가
+4. `modules:market-engine`에 memory-only rolling buffer 추가
+5. `modules:local-storage`에 SQLite 또는 DuckDB 저장소 추가
+6. `modules:market-engine`에 1s/5s 단위 feature aggregation 추가
+7. `modules:market-engine`에 AI analysis context builder 추가
+8. `modules:ai-adapter`에 TradingAgents 또는 LLM adapter 연결

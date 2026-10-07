@@ -4,15 +4,13 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '3.5.10' apply false
     id 'io.spring.dependency-management' version '1.1.7' apply false
+    id 'org.jetbrains.kotlin.jvm' version '1.9.24' apply false
+    id 'org.jetbrains.compose' version '1.6.11' apply false
 }
 
 allprojects {
     group = 'com.marketdata'
     version = '0.0.1-SNAPSHOT'
-
-    repositories {
-        mavenCentral()
-    }
 }
 
 subprojects {
@@ -37,8 +35,8 @@ subprojects {
 }
 
 configure([
-        project(':binance-collector-service'),
-        project(':bybit-collector-service')
+        project(':modules:collector-binance'),
+        project(':modules:collector-bybit')
 ]) {
     dependencies {
         implementation 'io.netty:netty-resolver-dns-native-macos::osx-aarch_64'

@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: bybit-collector-service
+    name: collector-bybit
   kafka:
     bootstrap-servers: localhost:9092
 

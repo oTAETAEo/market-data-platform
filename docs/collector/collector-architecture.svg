@@ -27,8 +27,8 @@
   <rect class="section" x="22" y="35" width="704" height="485"/>
   <rect class="section" x="774" y="35" width="704" height="485"/>
 
-  <text class="title" x="374" y="58" text-anchor="middle">binance-collector-service</text>
-  <text class="title" x="1126" y="58" text-anchor="middle">bybit-collector-service</text>
+  <text class="title" x="374" y="58" text-anchor="middle">collector-binance</text>
+  <text class="title" x="1126" y="58" text-anchor="middle">collector-bybit</text>
 
   <rect class="box" x="284" y="82" width="180" height="66"/>
   <text class="label" x="374" y="108" text-anchor="middle">Binance Linear</text>

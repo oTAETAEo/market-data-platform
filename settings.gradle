@@ -1,5 +1,31 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        google()
+        mavenCentral()
+        maven {
+            url = uri("https://maven.pkg.jetbrains.space/public/p/compose/dev")
+        }
+    }
+}
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+        maven {
+            url = uri("https://maven.pkg.jetbrains.space/public/p/compose/dev")
+        }
+    }
+}
+
 rootProject.name = 'market-data-platform'
 
-include 'core-domain'
-include 'binance-collector-service'
-include 'bybit-collector-service'
+include 'apps:desktop'
+include 'modules:core-domain'
+include 'modules:collector-binance'
+include 'modules:collector-bybit'
+include 'modules:market-engine'
+include 'modules:ai-adapter'
+include 'modules:local-storage'
