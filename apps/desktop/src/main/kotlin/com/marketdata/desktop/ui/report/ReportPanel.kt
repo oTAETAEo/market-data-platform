@@ -50,7 +50,6 @@ internal fun DetailPanel(viewModel: WorkspaceViewModel, modifier: Modifier, scro
             val report = result?.reports()?.find { it.agentName() == tile.id }
             StatusTag(if (report == null) "분석 대기" else report.status(),
                 if (report == null || report.status() == "SKIPPED") DeskColors.muted else DeskColors.green)
-            Text(report?.summary() ?: "아직 분석 결과가 없습니다.", color = DeskColors.muted, style = MaterialTheme.typography.body1)
             MarkdownReport(report?.summary() ?: "아직 분석 결과가 없습니다.")
             Text(tile.focus, color = tile.color, style = MaterialTheme.typography.body2)
         } else {
