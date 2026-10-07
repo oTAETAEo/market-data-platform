@@ -19,6 +19,8 @@ internal enum class WorkspaceLayout {
 
 internal fun sidebarWidth(windowWidth: Float) = (windowWidth * 0.17f).coerceIn(192f, 240f)
 internal fun detailPanelWidth(windowWidth: Float) = (windowWidth * 0.22f).coerceIn(272f, 336f)
+internal fun adjustedDetailPanelWidth(current: Float?, default: Float, dragDelta: Float, maximum: Float) =
+    ((current ?: default) - dragDelta).coerceIn(272f, maximum)
 
 internal fun agentColumnCount(width: Float, group: AgentGroup): Int = when {
     group == AgentGroup.ANALYST && width >= 760 -> 4

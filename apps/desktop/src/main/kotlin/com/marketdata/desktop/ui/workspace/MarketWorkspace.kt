@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,6 +16,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.marketdata.desktop.model.MarketAsset
 import com.marketdata.desktop.model.WorkspacePage
@@ -22,6 +28,7 @@ import com.marketdata.desktop.presentation.WorkspaceViewModel
 import com.marketdata.desktop.ui.analysis.AnalysisContent
 import com.marketdata.desktop.ui.history.HistoryContent
 import com.marketdata.desktop.ui.layout.WorkspaceLayout
+import com.marketdata.desktop.ui.layout.adjustedDetailPanelWidth
 import com.marketdata.desktop.ui.layout.detailPanelWidth
 import com.marketdata.desktop.ui.layout.sidebarWidth
 import com.marketdata.desktop.ui.report.DetailPanel
@@ -30,6 +37,7 @@ import com.marketdata.desktop.ui.theme.DeskColors
 import com.marketdata.desktop.ui.watchlist.AssetPicker
 import com.marketdata.desktop.ui.watchlist.Watchlist
 import kotlinx.coroutines.launch
+import java.awt.Cursor
 
 @Composable
 internal fun MarketWorkspace(viewModel: WorkspaceViewModel, titleBar: @Composable () -> Unit = {}) {
@@ -37,6 +45,7 @@ internal fun MarketWorkspace(viewModel: WorkspaceViewModel, titleBar: @Composabl
     var addDialog by remember { mutableStateOf(false) }
     var showMarkets by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
+    var customDetailWidth by remember { mutableStateOf<Float?>(null) }
     val analysisScroll = rememberScrollState()
     val detailScroll = rememberScrollState()
     LaunchedEffect(viewModel.selection) { analysisScroll.scrollTo(0) }
@@ -53,7 +62,10 @@ internal fun MarketWorkspace(viewModel: WorkspaceViewModel, titleBar: @Composabl
         BoxWithConstraints {
             val layout = WorkspaceLayout.forWidth(maxWidth.value)
             val sidebarSize = sidebarWidth(maxWidth.value).dp
-            val detailSize = detailPanelWidth(maxWidth.value).dp
+            val maxDetailWidth = (maxWidth.value - sidebarSize.value - 480f - 32f).coerceAtLeast(272f)
+            val detailSizeValue = (customDetailWidth ?: detailPanelWidth(maxWidth.value))
+                .coerceIn(272f, maxDetailWidth)
+            val detailSize = detailSizeValue.dp
             val compact = !layout.hasDetailPanel || maxHeight < 800.dp
             val marketListVisible = !layout.hasSidebar && (showMarkets || viewModel.query.isNotBlank())
             val selectAsset: (MarketAsset) -> Unit = { asset ->
@@ -96,7 +108,22 @@ internal fun MarketWorkspace(viewModel: WorkspaceViewModel, titleBar: @Composabl
                         enter = expandHorizontally(tween(180), expandFrom = Alignment.End) + fadeIn(tween(150)),
                         exit = shrinkHorizontally(tween(180), shrinkTowards = Alignment.End) + fadeOut(tween(100))) {
                         Row {
-                            Spacer(Modifier.width(8.dp))
+                            Box(Modifier.width(8.dp).fillMaxHeight()
+                                .semantics { contentDescription = "리포트 영역 너비 조절" }
+                                .pointerHoverIcon(PointerIcon(Cursor.getPredefinedCursor(Cursor.W_RESIZE_CURSOR)))
+                                .pointerInput(maxDetailWidth) {
+                                    detectDragGestures { change, dragAmount ->
+                                        change.consume()
+                                        customDetailWidth = adjustedDetailPanelWidth(
+                                            customDetailWidth,
+                                            detailSizeValue,
+                                            dragAmount.x,
+                                            maxDetailWidth
+                                        )
+                                    }
+                                }, contentAlignment = Alignment.Center) {
+                                Box(Modifier.width(1.dp).fillMaxHeight().background(DeskColors.line))
+                            }
                             DetailPanel(viewModel, Modifier.width(detailSize).fillMaxHeight()
                                 .clip(RoundedCornerShape(8.dp)).background(DeskColors.panel), scrollState = detailScroll)
                         }

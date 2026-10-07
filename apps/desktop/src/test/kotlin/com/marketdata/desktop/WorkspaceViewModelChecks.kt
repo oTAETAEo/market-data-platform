@@ -10,6 +10,7 @@ import com.marketdata.desktop.model.MarketCatalog
 import com.marketdata.desktop.model.WorkspacePage
 import com.marketdata.desktop.presentation.WorkspaceViewModel
 import com.marketdata.desktop.ui.layout.WorkspaceLayout
+import com.marketdata.desktop.ui.layout.adjustedDetailPanelWidth
 import com.marketdata.desktop.ui.layout.agentColumnCount
 import com.marketdata.engine.MarketContext
 import com.marketdata.engine.MarketEngine
@@ -32,6 +33,9 @@ fun main() = runBlocking {
     check(agentColumnCount(420f, AgentGroup.ANALYST) == 2)
     check(agentColumnCount(760f, AgentGroup.ANALYST) == 4)
     check(agentColumnCount(660f, AgentGroup.EXECUTION) == 3)
+    check(adjustedDetailPanelWidth(null, 300f, -120f, 500f) == 420f)
+    check(adjustedDetailPanelWidth(300f, 300f, 100f, 500f) == 272f)
+    check(adjustedDetailPanelWidth(450f, 300f, -100f, 500f) == 500f)
     val state = viewModelForChecks()
     check(state.activeRun == null && state.history.isEmpty())
     state.updateQuery("btc / usdt")

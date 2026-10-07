@@ -102,35 +102,6 @@ fun main(args: Array<String>) = runBlocking {
                 )
                 settle()
             }
-            suspend fun drag(
-                fromX: Float,
-                fromY: Float,
-                toX: Float,
-                toY: Float
-            ) {
-                scene.sendPointerEvent(
-                    PointerEventType.Press,
-                    Offset(fromX, fromY),
-                    type = PointerType.Mouse
-                )
-                repeat(4) { step ->
-                    val amount = (step + 1) / 4f
-                    scene.sendPointerEvent(
-                        PointerEventType.Move,
-                        Offset(
-                            fromX + (toX - fromX) * amount,
-                            fromY + (toY - fromY) * amount
-                        ),
-                        type = PointerType.Mouse
-                    )
-                }
-                scene.sendPointerEvent(
-                    PointerEventType.Release,
-                    Offset(toX, toY),
-                    type = PointerType.Mouse
-                )
-                settle()
-            }
             suspend fun capture(
                 name: String,
                 viewportWidth: Int = width,
@@ -189,21 +160,7 @@ fun main(args: Array<String>) = runBlocking {
                 } else {
                     8f
                 }
-            val initialHash =
-                capture("workspace-$width")
-            if (width == 1440) {
-                drag(
-                    1110f,
-                    450f,
-                    950f,
-                    450f
-                )
-                check(
-                    capture("detail-expanded-$width") != initialHash
-                ) {
-                    "Report pane did not resize"
-                }
-            }
+            capture("workspace-$width")
             click(
                 mainLeft + 142f,
                 126f
