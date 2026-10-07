@@ -82,3 +82,5 @@ compose.override.yml
 
 .omx
 .venv-tradingagents/
+__pycache__/
+*.pyc
