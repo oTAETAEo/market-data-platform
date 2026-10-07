@@ -4,7 +4,7 @@
 
 Market Data Platform은 Binance, Bybit 같은 거래소의 공개 암호화폐 선물 시장 데이터를 수집하고, 거래소별 메시지를 공통 시장 이벤트로 정규화하기 위한 오픈소스 Java 프로젝트입니다.
 
-현재는 Binance USD-M Futures와 Bybit Linear의 candle 데이터 수집에 집중하고 있습니다. 장기적으로는 사용자가 관심 있는 심볼의 시장 데이터를 로컬에서 수집하고, 정규화된 스트림을 확인하며, 원할 때만 AI 분석을 요청할 수 있는 로컬 우선 데스크톱 도구를 목표로 합니다.
+현재는 Binance USD-M Futures와 Bybit Linear의 candle 데이터 수집에 집중하고 있습니다. 장기적으로는 사용자가 관심 있는 심볼의 시장 데이터를 로컬에서 수집하고, 정규화된 스트림을 확인하며, 원할 때만 AI 분석을 요청할 수 있는 로컬 우선 데스크톱 앱을 목표로 합니다.
 
 
 ## AI에게 타점 분석을 요청하기 전에
@@ -24,7 +24,7 @@ Market Data Platform은 Binance, Bybit 같은 거래소의 공개 암호화폐 �
 공통 시장 이벤트
         ↓
 로컬 market engine
-        ├─ 차트와 상태 표시
+        ├─ 상태 표시
         ├─ 로컬 저장
         └─ 요청 시 AI 분석 context 생성
 ```
@@ -41,7 +41,8 @@ Market Data Platform은 Binance, Bybit 같은 거래소의 공개 암호화폐 �
 | Core domain | `MarketCandleEvent`, `MarketDlqEvent`, 공통 이벤트 계약 |
 | Binance collector | Binance USD-M Futures Kline WebSocket 수집과 정규화 |
 | Bybit collector | Bybit Linear Kline WebSocket 수집과 정규화 |
-| Build system | Gradle 멀티 모듈 Java 프로젝트 |
+| Desktop app | 실시간 수집 상태, AI 설정, TradingAgents 리포트를 제공하는 Compose 앱 |
+| Build system | Gradle 멀티 모듈 JVM 프로젝트 |
 | Local infrastructure | 로컬 스트림 검증을 위한 Docker Compose 파일 |
 | Documentation | Collector MVP 범위와 이벤트 계약 문서 |
 
@@ -71,9 +72,15 @@ Market Data Platform은 Binance, Bybit 같은 거래소의 공개 암호화폐 �
 
 ```text
 market-data-platform/
-├── core-domain/
-├── binance-collector-service/
-├── bybit-collector-service/
+├── apps/
+│   └── desktop/
+├── modules/
+│   ├── core-domain/
+│   ├── collector-binance/
+│   ├── collector-bybit/
+│   ├── market-engine/
+│   ├── ai-adapter/
+│   └── local-storage/
 ├── docs/
 ├── docker-compose.yml
 ├── build.gradle
@@ -82,9 +89,13 @@ market-data-platform/
 
 | 모듈 | 책임 |
 | --- | --- |
-| `core-domain` | 공통 시장 이벤트 record와 공유 계약 |
-| `binance-collector-service` | Binance USD-M Futures public Kline 수집 |
-| `bybit-collector-service` | Bybit Linear public Kline 수집 |
+| `apps:desktop` | Compose for Desktop 실행 앱과 단일 사용자 제어 화면 |
+| `modules:core-domain` | 공통 시장 이벤트 record와 공유 계약 |
+| `modules:collector-binance` | Binance USD-M Futures public Kline 수집 |
+| `modules:collector-bybit` | Bybit Linear public Kline 수집 |
+| `modules:market-engine` | 500개 제한 rolling buffer와 불변 AI 분석 context |
+| `modules:ai-adapter` | 로컬 Python TradingAgents와 LLM provider 호출 경계 |
+| `modules:local-storage` | SQLite, DuckDB 등 로컬 저장 정책 |
 
 
 ## 이벤트 예시
@@ -113,7 +124,16 @@ market-data-platform/
 필요한 환경:
 
 - Java 21
-- Docker, 로컬 스트림 검증용
+- Python 3.10 이상, 현재 개발 환경은 3.13
+- `uv`
+- `/Users/apple/Desktop/TradingAgents`
+
+TradingAgents용 Python 환경을 한 번 준비합니다.
+
+```bash
+uv venv --python 3.13 .venv-tradingagents
+uv pip install --python .venv-tradingagents/bin/python -e /Users/apple/Desktop/TradingAgents
+```
 
 프로젝트를 빌드합니다.
 
@@ -121,18 +141,13 @@ market-data-platform/
 ./gradlew clean build
 ```
 
-로컬 인프라를 실행합니다.
+데스크톱 앱을 실행합니다.
 
 ```bash
-docker compose up -d
+./gradlew :apps:desktop:run
 ```
 
-collector를 실행합니다.
-
-```bash
-./gradlew :binance-collector-service:bootRun
-./gradlew :bybit-collector-service:bootRun
-```
+앱의 설정 아이콘에서 AI 제공자, 모델, API 키를 입력합니다. 키는 현재 세션에만 유지됩니다.
 
 
 ## 프로젝트 방향
@@ -140,10 +155,10 @@ collector를 실행합니다.
 계획하고 있는 방향은 로컬 우선 시장 분석 앱입니다.
 
 ```text
-market-engine      # rolling buffer, feature 계산, AI context builder
-local-storage      # memory-only와 local persistence 정책
-ai-adapter         # TradingAgents와 LLM provider 연동
-desktop-app        # Tauri 데스크톱 UI
+apps/desktop              # Compose for Desktop UI
+modules/market-engine     # rolling buffer, feature 계산, AI context builder
+modules/local-storage     # memory-only와 local persistence 정책
+modules/ai-adapter        # TradingAgents와 LLM provider 연동
 ```
 
 의도하는 데스크톱 흐름은 다음과 같습니다.
@@ -176,31 +191,30 @@ desktop-app        # Tauri 데스크톱 UI
 
 ### Local Engine
 
-- [ ] Local event bus
-- [ ] Memory-only rolling buffer
+- [x] 데스크톱 인프로세스 수집 경로
+- [x] Memory-only rolling buffer
 - [ ] SQLite 또는 DuckDB 저장
 - [ ] Retention policy
 - [ ] 1s/5s aggregation
 - [ ] Volume, volatility, trade imbalance feature
-- [ ] AI analysis context builder
+- [x] 캔들 스냅샷 기반 AI analysis context builder
 
 ### AI Analysis
 
-- [ ] TradingAgents adapter
-- [ ] LLM provider configuration
-- [ ] Local API key storage policy
-- [ ] Analysis request/result model
-- [ ] Analysis report model
+- [x] 로컬 Python TradingAgents adapter
+- [x] 세션 단위 LLM provider·model configuration
+- [x] 메모리 전용 API key policy
+- [x] Analysis request/result model
+- [x] Analysis report model
 
 ### Desktop App
 
-- [ ] Tauri desktop app
-- [ ] Exchange selection UI
-- [ ] Symbol selection UI
-- [ ] Data mode selection UI
-- [ ] Collection start/stop UI
-- [ ] Realtime chart/status UI
-- [ ] Analysis button and result view
+- [x] Compose for Desktop 앱 모듈
+- [x] Exchange selection UI
+- [x] Symbol selection UI
+- [x] 자동 collection lifecycle
+- [x] Realtime collection status UI
+- [x] AI 설정, analysis button, agent result view
 
 
 ## 문서
@@ -208,3 +222,5 @@ desktop-app        # Tauri 데스크톱 UI
 | 문서 | 내용 |
 | --- | --- |
 | [Collector MVP 1.0.0](docs/collector/collector-mvp-1.0.0.md) | Collector 범위, 이벤트 계약, 완료 기준 |
+| [데스크톱 화면](docs/desktop-design.md) | 화면 구성, 반응형 동작, 창 프레임과 검증 방법 |
+| [데스크톱-백엔드 연결](docs/desktop-backend-integration.md) | 패키지별 책임, Java 모듈 호출 경계, 수집기·저장소·TradingAgents 연결 방향 |
