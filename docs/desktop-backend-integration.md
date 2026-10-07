@@ -15,7 +15,7 @@ flowchart LR
     UseCase --> Snapshot[불변 MarketContext]
     Snapshot --> Adapter[LocalTradingAgentsAdapter]
     Adapter --> Worker[일회성 Python 프로세스]
-    Worker --> TA[/Users/apple/Desktop/TradingAgents]
+    Worker --> TA["/Users/apple/Desktop/TradingAgents"]
     TA --> LLM[사용자가 선택한 AI 제공자]
     LLM --> UI
 ```
