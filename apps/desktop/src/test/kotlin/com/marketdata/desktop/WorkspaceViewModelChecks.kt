@@ -48,10 +48,17 @@ fun main() = runBlocking {
     check(state.visibleAssets.none { it.ticker == "LINK" })
     state.toggleFavorite("LINK")
     check(state.visibleAssets.any { it.ticker == "LINK" })
+    check(MarketCatalog.fromInput("ada/usdt")?.symbol == "ADAUSDT")
+    check(MarketCatalog.fromInput("BTC-USDT")?.name == "Bitcoin")
+    check(MarketCatalog.fromInput("USDT") == null)
+    check(!state.addSymbol("$"))
+    check(state.addSymbol("adausdt"))
+    check(state.selection.asset.symbol == "ADAUSDT")
+    check(state.watchlist.any { it.ticker == "ADA" })
 
     state.analyze()
     val first = state.activeRun!!
-    check(first.result.symbol() == "LINKUSDT" && state.history.size == 1)
+    check(first.result.symbol() == "ADAUSDT" && state.history.size == 1)
     state.select(exchange = "BYBIT")
     check(state.activeRun == null)
     state.select(exchange = "BINANCE")
@@ -80,7 +87,8 @@ fun main() = runBlocking {
     check(delayed.history.single().selection.asset.ticker == "BTC")
     check(delayed.selection.asset.ticker == "ETH")
 
-    val failing = viewModelForChecks(adapter = TradingAgentsAdapter { _, _, _ -> throw IllegalStateException("test failure") })
+    val failing =
+        viewModelForChecks(adapter = TradingAgentsAdapter { _, _, _ -> throw IllegalStateException("test failure") })
     failing.analyze()
     check(!failing.busy && failing.error != null && failing.history.isEmpty())
     failing.select(timeframe = "1m")

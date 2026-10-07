@@ -97,8 +97,10 @@ internal class WorkspaceViewModel(
             activeRun = analysisHistory.firstOrNull { it.selection == next }
             selectedAgent = null
             error = null
-            marketData?.start(next)
-            marketStatus = MarketStatus("CONNECTING", 0, null, false)
+            marketData?.let {
+                it.start(next)
+                marketStatus = MarketStatus("CONNECTING", 0, null, false)
+            }
         }
         page = WorkspacePage.ANALYSIS
     }
@@ -112,6 +114,12 @@ internal class WorkspaceViewModel(
         query = ""
         favoritesOnly = false
         select(asset)
+    }
+
+    fun addSymbol(input: String): Boolean {
+        val asset = MarketCatalog.fromInput(input) ?: return false
+        addAsset(asset)
+        return true
     }
 
     fun openRun(run: AnalysisRun) {

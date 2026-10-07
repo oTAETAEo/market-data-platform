@@ -15,7 +15,18 @@ internal object MarketCatalog {
     )
 
     fun matches(asset: MarketAsset, query: String): Boolean {
-        val normalized = query.trim().uppercase(Locale.ROOT).replace("/", "").replace(" ", "")
+        val normalized = normalize(query)
         return asset.symbol.contains(normalized) || asset.name.uppercase(Locale.ROOT).contains(normalized)
     }
+
+    fun fromInput(input: String): MarketAsset? {
+        val normalized = normalize(input)
+        val ticker = normalized.removeSuffix("USDT")
+        if (!ticker.matches(Regex("[A-Z0-9]{2,15}")) || ticker == "USDT") return null
+        return assets.firstOrNull { it.ticker == ticker }
+            ?: MarketAsset(ticker, ticker, ticker.first().toString())
+    }
+
+    private fun normalize(value: String): String = value.trim().uppercase(Locale.ROOT)
+        .replace(Regex("[\\s/_-]"), "")
 }

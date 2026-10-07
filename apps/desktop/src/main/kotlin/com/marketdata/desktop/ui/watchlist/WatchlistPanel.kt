@@ -93,8 +93,12 @@ internal fun AssetPicker(viewModel: WorkspaceViewModel, onDismiss: () -> Unit) {
                     Spacer(Modifier.weight(1f))
                     ToolButton(Icons.Default.Close, "닫기", onClick = onDismiss)
                 }
-                SearchField(query, { query = it }, "티커 또는 이름", Modifier.fillMaxWidth())
-                val matches = MarketCatalog.assets.filter { MarketCatalog.matches(it, query) }
+                Text("${viewModel.selection.exchange} USDT 무기한 선물 종목을 입력하세요.",
+                    color = DeskColors.muted, style = MaterialTheme.typography.body2)
+                SearchField(query, { query = it }, "예: ADA, ADAUSDT, ADA/USDT", Modifier.fillMaxWidth())
+                val candidates = (MarketCatalog.assets + viewModel.watchlist).distinctBy { it.ticker }
+                val matches = candidates.filter { query.isBlank() || MarketCatalog.matches(it, query) }
+                val custom = MarketCatalog.fromInput(query)
                 LazyColumn(Modifier.heightIn(max = 340.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     items(matches) { asset ->
                         Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp)).clickable { viewModel.addAsset(asset); onDismiss() }.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -107,7 +111,26 @@ internal fun AssetPicker(viewModel: WorkspaceViewModel, onDismiss: () -> Unit) {
                             Icon(if (viewModel.watchlist.any { it.ticker == asset.ticker }) Icons.Default.Check else Icons.Default.Add, null, tint = DeskColors.green, modifier = Modifier.size(18.dp))
                         }
                     }
-                    if (matches.isEmpty()) item { Text("검색 결과가 없습니다", color = DeskColors.muted, modifier = Modifier.padding(10.dp)) }
+                    if (query.isNotBlank() && custom != null && candidates.none { it.ticker == custom.ticker }) item {
+                        Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp)).background(DeskColors.elevated)
+                            .clickable {
+                                viewModel.addSymbol(query)
+                                onDismiss()
+                            }.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            CoinMark(custom, 36.dp)
+                            Spacer(Modifier.width(12.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text("${custom.ticker} / USDT 추가", style = MaterialTheme.typography.subtitle1)
+                                Text("현재 거래소에서 수집을 시작합니다.", color = DeskColors.muted,
+                                    style = MaterialTheme.typography.caption)
+                            }
+                            Icon(Icons.Default.Add, null, tint = DeskColors.green, modifier = Modifier.size(18.dp))
+                        }
+                    }
+                    if (query.isNotBlank() && matches.isEmpty() && custom == null) item {
+                        Text("영문과 숫자로 된 USDT 티커를 입력해 주세요.", color = DeskColors.coral,
+                            style = MaterialTheme.typography.body2, modifier = Modifier.padding(10.dp))
+                    }
                 }
             }
         }
