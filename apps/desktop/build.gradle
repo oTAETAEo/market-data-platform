@@ -1,0 +1,79 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm'
+    id 'org.jetbrains.compose'
+}
+
+dependencies {
+    implementation project(':modules:core-domain')
+    implementation project(':modules:collector-binance')
+    implementation project(':modules:collector-bybit')
+    implementation project(':modules:market-engine')
+    implementation project(':modules:ai-adapter')
+    implementation project(':modules:local-storage')
+
+    implementation compose.desktop.currentOs
+    implementation 'com.halilibo.compose-richtext:richtext-commonmark:0.17.0'
+    implementation 'com.halilibo.compose-richtext:richtext-ui-material:0.17.0'
+}
+
+compose.desktop {
+    application {
+        mainClass = 'com.marketdata.desktop.MainKt'
+
+        nativeDistributions {
+            packageName = 'MarketDataPlatform'
+            packageVersion = '0.1.0'
+
+            macOS {
+                // JDK 21 jpackage requires a positive leading number for macOS app images.
+                packageVersion = '1.0.0'
+                bundleID = 'com.marketdata.desktop'
+            }
+        }
+    }
+}
+
+tasks.register('verifyWorkspace', JavaExec) {
+    group = 'verification'
+    description = 'Checks desktop selection, session history and asynchronous analysis state.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.marketdata.desktop.WorkspaceViewModelChecksKt'
+}
+
+tasks.named('check') {
+    dependsOn 'verifyWorkspace', 'verifyDesktopUi'
+}
+
+tasks.named('test') {
+    // Standalone checks and their Compose-generated helpers run through JavaExec, not JUnit.
+    exclude 'com/marketdata/desktop/*ChecksKt*.class'
+    exclude 'com/marketdata/desktop/*SmokeKt*.class'
+}
+
+tasks.register('verifyDesktopUi', JavaExec) {
+    group = 'verification'
+    description = 'Renders desktop layouts and checks Compose UI actions without screen permissions.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.marketdata.desktop.DesktopUiChecksKt'
+    systemProperty 'java.awt.headless', 'true'
+    args layout.buildDirectory.dir('reports/desktop-ui').get().asFile.absolutePath
+}
+
+tasks.register('verifyDesktopWindow', JavaExec) {
+    group = 'verification'
+    description = 'Checks native desktop window configuration with an undisplayed window.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.marketdata.desktop.DesktopWindowChecksKt'
+    systemProperty 'java.awt.headless', 'false'
+}
+
+tasks.register('verifyLiveMarket', JavaExec) {
+    group = 'verification'
+    description = 'Loads public Binance BTCUSDT candles into the in-memory market engine.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.marketdata.desktop.LiveMarketSmokeKt'
+}
