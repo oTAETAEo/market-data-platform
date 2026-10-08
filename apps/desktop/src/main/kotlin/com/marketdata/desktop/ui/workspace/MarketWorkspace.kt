@@ -21,6 +21,7 @@ import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.marketdata.desktop.model.MarketAsset
 import com.marketdata.desktop.model.WorkspacePage
@@ -60,6 +61,7 @@ internal fun MarketWorkspace(viewModel: WorkspaceViewModel, titleBar: @Composabl
 
     Surface(Modifier.fillMaxSize(), color = DeskColors.background) {
         BoxWithConstraints {
+            val density = LocalDensity.current
             val layout = WorkspaceLayout.forWidth(maxWidth.value)
             val sidebarSize = sidebarWidth(maxWidth.value).dp
             val maxDetailWidth = (maxWidth.value - sidebarSize.value - 480f - 32f).coerceAtLeast(272f)
@@ -111,13 +113,13 @@ internal fun MarketWorkspace(viewModel: WorkspaceViewModel, titleBar: @Composabl
                             Box(Modifier.width(8.dp).fillMaxHeight()
                                 .semantics { contentDescription = "리포트 영역 너비 조절" }
                                 .pointerHoverIcon(PointerIcon(Cursor.getPredefinedCursor(Cursor.W_RESIZE_CURSOR)))
-                                .pointerInput(maxDetailWidth) {
+                                .pointerInput(maxDetailWidth, density.density) {
                                     detectDragGestures { change, dragAmount ->
                                         change.consume()
                                         customDetailWidth = adjustedDetailPanelWidth(
                                             customDetailWidth,
                                             detailSizeValue,
-                                            dragAmount.x,
+                                            dragAmount.x / density.density,
                                             maxDetailWidth
                                         )
                                     }
