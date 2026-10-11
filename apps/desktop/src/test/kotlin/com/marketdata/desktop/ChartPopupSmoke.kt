@@ -2,7 +2,6 @@ package com.marketdata.desktop
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.DropdownMenu
 import androidx.compose.material.DropdownMenuItem
 import androidx.compose.material.Text
 import androidx.compose.ui.Modifier
@@ -10,6 +9,7 @@ import androidx.compose.ui.awt.ComposeWindow
 import androidx.compose.ui.awt.SwingPanel
 import androidx.compose.ui.unit.dp
 import com.marketdata.desktop.ui.chart.LightweightChartPanel
+import com.marketdata.desktop.ui.components.StableDropdownMenu
 import com.marketdata.desktop.ui.theme.MarketTheme
 import javafx.application.Platform
 import javax.swing.SwingUtilities
@@ -27,7 +27,7 @@ fun main() {
             MarketTheme {
                 Box {
                     SwingPanel(factory = { chart }, modifier = Modifier.size(600.dp, 400.dp))
-                    DropdownMenu(expanded = true, onDismissRequest = {}) {
+                    StableDropdownMenu(expanded = true, onDismissRequest = {}) {
                         DropdownMenuItem(onClick = {}) { Text("1m") }
                         DropdownMenuItem(onClick = {}) { Text("5m") }
                     }
@@ -51,6 +51,18 @@ fun main() {
             if (!verified) Thread.sleep(100)
         }
         check(verified) { "Dropdown was not created as a separate native window" }
+        val bounds = java.awt.Rectangle()
+        SwingUtilities.invokeAndWait {
+            bounds.setBounds(window.ownedWindows.first { it.isShowing }.bounds)
+        }
+        repeat(10) {
+            Thread.sleep(50)
+            SwingUtilities.invokeAndWait {
+                check(window.ownedWindows.first { it.isShowing }.bounds == bounds) {
+                    "Dropdown window moved or resized while open"
+                }
+            }
+        }
         println("Chart popup smoke passed: focusable native dropdown and visible JavaFX chart")
     } finally {
         SwingUtilities.invokeAndWait { window.dispose(); chart.dispose() }

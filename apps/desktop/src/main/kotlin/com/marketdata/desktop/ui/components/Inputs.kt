@@ -17,7 +17,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupPositionProvider
+import androidx.compose.ui.window.PopupProperties
 import com.marketdata.desktop.ui.theme.DeskColors
 
 @Composable
@@ -54,7 +61,7 @@ internal fun DropdownControl(
             Spacer(Modifier.width(12.dp))
             Icon(Icons.Default.KeyboardArrowDown, null, tint = DeskColors.muted, modifier = Modifier.size(16.dp))
         }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        StableDropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             values.forEach { option ->
                 DropdownMenuItem(onClick = { onChange(option); open = false }) {
                     Text(option, modifier = Modifier.width(88.dp), color = if (value == option) DeskColors.green else DeskColors.text)
@@ -62,5 +69,41 @@ internal fun DropdownControl(
                 }
             }
         }
+    }
+}
+
+@Composable
+internal fun StableDropdownMenu(
+    expanded: Boolean,
+    onDismissRequest: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    if (!expanded) return
+    Popup(
+        popupPositionProvider = DropdownPosition,
+        onDismissRequest = onDismissRequest,
+        properties = PopupProperties(focusable = true)
+    ) {
+        Surface(shape = MaterialTheme.shapes.small, elevation = 8.dp) {
+            Column(Modifier.width(IntrinsicSize.Max).padding(vertical = 8.dp), content = content)
+        }
+    }
+}
+
+private object DropdownPosition : PopupPositionProvider {
+    override fun calculatePosition(
+        anchorBounds: IntRect,
+        windowSize: IntSize,
+        layoutDirection: LayoutDirection,
+        popupContentSize: IntSize
+    ): IntOffset {
+        val x = if (layoutDirection == LayoutDirection.Ltr) anchorBounds.left
+            else anchorBounds.right - popupContentSize.width
+        val y = if (anchorBounds.bottom + popupContentSize.height <= windowSize.height)
+            anchorBounds.bottom else anchorBounds.top - popupContentSize.height
+        return IntOffset(
+            x.coerceIn(0, (windowSize.width - popupContentSize.width).coerceAtLeast(0)),
+            y.coerceIn(0, (windowSize.height - popupContentSize.height).coerceAtLeast(0))
+        )
     }
 }
