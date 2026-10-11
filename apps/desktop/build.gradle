@@ -92,3 +92,12 @@ tasks.register('verifyChartRuntime', JavaExec) {
     mainClass = 'com.marketdata.desktop.LightweightChartSmokeKt'
     systemProperty 'java.awt.headless', 'false'
 }
+
+tasks.register('verifyChartPopup', JavaExec) {
+    group = 'verification'
+    description = 'Checks that a native dropdown can receive focus above the visible JavaFX chart.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.marketdata.desktop.ChartPopupSmokeKt'
+    systemProperty 'java.awt.headless', 'false'
+}
