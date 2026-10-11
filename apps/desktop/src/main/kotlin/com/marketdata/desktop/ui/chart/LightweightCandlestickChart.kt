@@ -34,7 +34,7 @@ internal fun LightweightCandlestickChart(
     height: Dp,
     embedWebView: Boolean
 ) {
-    if (candles.isEmpty() || !embedWebView) {
+    if (candles.isEmpty()) {
         Box(
             Modifier.fillMaxWidth().height(height).background(DeskColors.elevated),
             contentAlignment = Alignment.Center
@@ -50,12 +50,17 @@ internal fun LightweightCandlestickChart(
 
     val panel = remember { LightweightChartPanel() }
     DisposableEffect(panel) { onDispose(panel::dispose) }
-    SwingPanel(
-        factory = { panel },
-        update = { it.update(chartKey, candles) },
-        modifier = Modifier.fillMaxWidth().height(height),
-        background = Color(0xFF121414)
-    )
+    Box(Modifier.fillMaxWidth().height(height).background(DeskColors.elevated)) {
+        SwingPanel(
+            factory = { panel },
+            update = {
+                it.isVisible = embedWebView
+                if (embedWebView) it.update(chartKey, candles)
+            },
+            modifier = Modifier.fillMaxSize(),
+            background = Color(0xFF121414)
+        )
+    }
 }
 
 internal class LightweightChartPanel : JFXPanel() {

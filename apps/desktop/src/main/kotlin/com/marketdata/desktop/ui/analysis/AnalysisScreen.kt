@@ -43,8 +43,11 @@ internal fun AnalysisContent(viewModel: WorkspaceViewModel, compact: Boolean, in
         DetailPanel(viewModel, Modifier.fillMaxSize(), scrollState = detailScroll)
         return
     }
-    Column(Modifier.fillMaxSize().padding(if (compact) 12.dp else 24.dp),
-        verticalArrangement = Arrangement.spacedBy(if (compact) 10.dp else 18.dp)) {
+    var openSelector by remember { mutableStateOf<String?>(null) }
+    Column(
+        Modifier.fillMaxSize().verticalScroll(analysisScroll).padding(if (compact) 12.dp else 24.dp),
+        verticalArrangement = Arrangement.spacedBy(if (compact) 10.dp else 18.dp)
+    ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             CoinMark(viewModel.selection.asset, if (compact) 44.dp else 62.dp)
             Spacer(Modifier.width(16.dp))
@@ -59,8 +62,24 @@ internal fun AnalysisContent(viewModel: WorkspaceViewModel, compact: Boolean, in
             }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-            DropdownControl(viewModel.selection.exchange, listOf("BINANCE", "BYBIT"), "거래소") { viewModel.select(exchange = it) }
-            DropdownControl(viewModel.selection.timeframe, listOf("1m", "5m", "15m", "1h", "4h"), "타임프레임") { viewModel.select(timeframe = it) }
+            DropdownControl(
+                viewModel.selection.exchange,
+                listOf("BINANCE", "BYBIT"),
+                "거래소",
+                onChange = { viewModel.select(exchange = it) },
+                onExpandedChange = { expanded ->
+                    openSelector = if (expanded) "exchange" else openSelector.takeUnless { it == "exchange" }
+                }
+            )
+            DropdownControl(
+                viewModel.selection.timeframe,
+                listOf("1m", "5m", "15m", "1h", "4h"),
+                "타임프레임",
+                onChange = { viewModel.select(timeframe = it) },
+                onExpandedChange = { expanded ->
+                    openSelector = if (expanded) "timeframe" else openSelector.takeUnless { it == "timeframe" }
+                }
+            )
             Spacer(Modifier.weight(1f))
             StatusDot(connectionLabel(viewModel.marketStatus.connection()),
                 if (viewModel.marketStatus.connection() == "LIVE") DeskColors.green else DeskColors.muted)
@@ -77,14 +96,10 @@ internal fun AnalysisContent(viewModel: WorkspaceViewModel, compact: Boolean, in
                     chartKey = "${viewModel.selection.exchange}:${viewModel.selection.asset.symbol}:${viewModel.selection.timeframe}",
                     candles = viewModel.chartCandles,
                     height = if (compact) 140.dp else 220.dp,
-                    embedWebView = true
+                    embedWebView = openSelector == null
                 )
             }
         }
-        Column(
-            Modifier.weight(1f).fillMaxWidth().verticalScroll(analysisScroll),
-            verticalArrangement = Arrangement.spacedBy(if (compact) 12.dp else 20.dp)
-        ) {
         if (!compact) Row(Modifier.fillMaxWidth().border(BorderStroke(1.dp, DeskColors.line), RoundedCornerShape(6.dp)).padding(vertical = 16.dp)) {
             Metric("수집된 캔들", viewModel.marketStatus.candleCount().toString(), "개", Modifier.weight(1f))
             Box(Modifier.width(1.dp).height(44.dp).background(DeskColors.line))
@@ -122,7 +137,6 @@ internal fun AnalysisContent(viewModel: WorkspaceViewModel, compact: Boolean, in
         }
         Text(if (viewModel.marketStatus.analysisReady()) "시장 데이터 준비 완료" else "확정 캔들 200개 수집 중",
             style = MaterialTheme.typography.caption, color = DeskColors.muted)
-        }
     }
 }
 

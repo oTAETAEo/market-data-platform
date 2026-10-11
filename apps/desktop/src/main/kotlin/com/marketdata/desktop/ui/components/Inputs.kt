@@ -39,19 +39,29 @@ internal fun SearchField(value: String, onChange: (String) -> Unit, placeholder:
 }
 
 @Composable
-internal fun DropdownControl(value: String, values: List<String>, label: String, onChange: (String) -> Unit) {
+internal fun DropdownControl(
+    value: String,
+    values: List<String>,
+    label: String,
+    onExpandedChange: (Boolean) -> Unit = {},
+    onChange: (String) -> Unit
+) {
     var open by remember { mutableStateOf(false) }
+    fun setOpen(value: Boolean) {
+        open = value
+        onExpandedChange(value)
+    }
     Box {
-        OutlinedButton(onClick = { open = true }, border = BorderStroke(1.dp, DeskColors.line),
+        OutlinedButton(onClick = { setOpen(true) }, border = BorderStroke(1.dp, DeskColors.line),
             colors = ButtonDefaults.outlinedButtonColors(backgroundColor = DeskColors.elevated, contentColor = DeskColors.text),
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 9.dp), modifier = Modifier.semantics { contentDescription = label }) {
             Text(value, style = MaterialTheme.typography.subtitle2)
             Spacer(Modifier.width(12.dp))
             Icon(Icons.Default.KeyboardArrowDown, null, tint = DeskColors.muted, modifier = Modifier.size(16.dp))
         }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        DropdownMenu(expanded = open, onDismissRequest = { setOpen(false) }) {
             values.forEach { option ->
-                DropdownMenuItem(onClick = { onChange(option); open = false }) {
+                DropdownMenuItem(onClick = { onChange(option); setOpen(false) }) {
                     Text(option, modifier = Modifier.width(88.dp), color = if (value == option) DeskColors.green else DeskColors.text)
                     if (value == option) Icon(Icons.Default.Check, null, tint = DeskColors.green, modifier = Modifier.size(16.dp))
                 }
