@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
+
 package com.marketdata.desktop.ui.components
 
 import androidx.compose.foundation.BorderStroke
@@ -14,6 +16,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.geometry.Rect
@@ -59,15 +64,17 @@ internal fun DropdownControl(
     Box {
         OutlinedButton(onClick = {
             if (nativePopupOwner == null) {
-                open = true
+                open = !open
             } else {
-                menu.setOptions(value, values, onChange)
-                menu.show(nativePopupOwner, (anchor.left / density).roundToInt(), (anchor.bottom / density).roundToInt())
+                menu.toggle(nativePopupOwner, (anchor.left / density).roundToInt(), (anchor.bottom / density).roundToInt()) {
+                    menu.setOptions(value, values, onChange)
+                }
             }
         }, border = BorderStroke(1.dp, DeskColors.line),
             colors = ButtonDefaults.outlinedButtonColors(backgroundColor = DeskColors.elevated, contentColor = DeskColors.text),
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 9.dp),
             modifier = Modifier.onGloballyPositioned { anchor = it.boundsInWindow() }
+                .onPointerEvent(PointerEventType.Press, PointerEventPass.Initial) { menu.captureButtonPress() }
                 .semantics { contentDescription = label }) {
             Text(value, style = MaterialTheme.typography.subtitle2)
             Spacer(Modifier.width(12.dp))

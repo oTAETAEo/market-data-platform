@@ -76,6 +76,17 @@ fun main() {
             check(firstVisibleBounds.all { it.location == expected && it.width > 0 && it.height > 0 }) {
                 "Popup first appeared at an uninitialized location: $firstVisibleBounds"
             }
+            menu.toggle(window.contentPane, 160, 100) {}
+            check(menu.isVisible) { "Button did not open the dropdown" }
+            menu.captureButtonPress()
+            menu.isVisible = false
+            menu.toggle(window.contentPane, 160, 100) {}
+            check(!menu.isVisible) { "Button release reopened the dismissed dropdown" }
+            menu.captureButtonPress()
+            menu.toggle(window.contentPane, 160, 100) {}
+            check(menu.isVisible) { "Next button click did not reopen the dropdown" }
+            menu.toggle(window.contentPane, 160, 100) {}
+            check(!menu.isVisible) { "Button did not close the open dropdown" }
         }
         println("Chart popup smoke passed: initial position, repeated openings, stable bounds, selection and chart visibility")
     } finally {
