@@ -42,7 +42,7 @@ fun main() {
                 onDispose { }
             }
             MarketTheme {
-                MarketWorkspace(desktop.viewModel, titleBar = {
+                MarketWorkspace(desktop.viewModel, popupOwner = window.contentPane, titleBar = {
                     if (isMacOs) WindowDraggableArea {
                         Spacer(Modifier.fillMaxWidth().height(32.dp))
                     }

@@ -7,7 +7,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Search
@@ -17,15 +16,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntRect
-import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.PopupPositionProvider
-import androidx.compose.ui.window.PopupProperties
 import com.marketdata.desktop.ui.theme.DeskColors
+import java.awt.Component
+import kotlin.math.roundToInt
 
 @Composable
 internal fun SearchField(value: String, onChange: (String) -> Unit, placeholder: String, modifier: Modifier = Modifier) {
@@ -50,60 +48,37 @@ internal fun DropdownControl(
     value: String,
     values: List<String>,
     label: String,
+    nativePopupOwner: Component? = null,
     onChange: (String) -> Unit
 ) {
+    val density = LocalDensity.current.density
     var open by remember { mutableStateOf(false) }
+    var anchor by remember { mutableStateOf(Rect.Zero) }
+    val menu = remember { NativeDropdownMenu() }
+    DisposableEffect(menu) { onDispose { menu.isVisible = false } }
     Box {
-        OutlinedButton(onClick = { open = true }, border = BorderStroke(1.dp, DeskColors.line),
+        OutlinedButton(onClick = {
+            if (nativePopupOwner == null) {
+                open = true
+            } else {
+                menu.setOptions(value, values, onChange)
+                menu.show(nativePopupOwner, (anchor.left / density).roundToInt(), (anchor.bottom / density).roundToInt())
+            }
+        }, border = BorderStroke(1.dp, DeskColors.line),
             colors = ButtonDefaults.outlinedButtonColors(backgroundColor = DeskColors.elevated, contentColor = DeskColors.text),
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 9.dp), modifier = Modifier.semantics { contentDescription = label }) {
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 9.dp),
+            modifier = Modifier.onGloballyPositioned { anchor = it.boundsInWindow() }
+                .semantics { contentDescription = label }) {
             Text(value, style = MaterialTheme.typography.subtitle2)
             Spacer(Modifier.width(12.dp))
             Icon(Icons.Default.KeyboardArrowDown, null, tint = DeskColors.muted, modifier = Modifier.size(16.dp))
         }
-        StableDropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        if (nativePopupOwner == null) DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             values.forEach { option ->
-                DropdownMenuItem(onClick = { onChange(option); open = false }) {
-                    Text(option, modifier = Modifier.width(88.dp), color = if (value == option) DeskColors.green else DeskColors.text)
-                    if (value == option) Icon(Icons.Default.Check, null, tint = DeskColors.green, modifier = Modifier.size(16.dp))
+                DropdownMenuItem(onClick = { open = false; onChange(option) }) {
+                    Text(option, color = if (value == option) DeskColors.green else DeskColors.text)
                 }
             }
         }
-    }
-}
-
-@Composable
-internal fun StableDropdownMenu(
-    expanded: Boolean,
-    onDismissRequest: () -> Unit,
-    content: @Composable ColumnScope.() -> Unit
-) {
-    if (!expanded) return
-    Popup(
-        popupPositionProvider = DropdownPosition,
-        onDismissRequest = onDismissRequest,
-        properties = PopupProperties(focusable = true)
-    ) {
-        Surface(shape = MaterialTheme.shapes.small, elevation = 8.dp) {
-            Column(Modifier.width(IntrinsicSize.Max).padding(vertical = 8.dp), content = content)
-        }
-    }
-}
-
-private object DropdownPosition : PopupPositionProvider {
-    override fun calculatePosition(
-        anchorBounds: IntRect,
-        windowSize: IntSize,
-        layoutDirection: LayoutDirection,
-        popupContentSize: IntSize
-    ): IntOffset {
-        val x = if (layoutDirection == LayoutDirection.Ltr) anchorBounds.left
-            else anchorBounds.right - popupContentSize.width
-        val y = if (anchorBounds.bottom + popupContentSize.height <= windowSize.height)
-            anchorBounds.bottom else anchorBounds.top - popupContentSize.height
-        return IntOffset(
-            x.coerceIn(0, (windowSize.width - popupContentSize.width).coerceAtLeast(0)),
-            y.coerceIn(0, (windowSize.height - popupContentSize.height).coerceAtLeast(0))
-        )
     }
 }

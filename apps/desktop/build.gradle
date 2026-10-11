@@ -95,7 +95,7 @@ tasks.register('verifyChartRuntime', JavaExec) {
 
 tasks.register('verifyChartPopup', JavaExec) {
     group = 'verification'
-    description = 'Checks that a native dropdown can receive focus above the visible JavaFX chart.'
+    description = 'Checks native dropdown initial position, stable bounds, selection and JavaFX chart visibility.'
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath
     mainClass = 'com.marketdata.desktop.ChartPopupSmokeKt'

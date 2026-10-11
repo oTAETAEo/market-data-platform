@@ -38,7 +38,8 @@ private val timeFormat = DateTimeFormatter.ofPattern("HH:mm:ss").withZone(ZoneId
 
 @Composable
 internal fun AnalysisContent(viewModel: WorkspaceViewModel, compact: Boolean, inlineDetails: Boolean,
-                            analysisScroll: ScrollState, detailScroll: ScrollState, showChart: Boolean) {
+                            analysisScroll: ScrollState, detailScroll: ScrollState, showChart: Boolean,
+                            popupOwner: java.awt.Component? = null) {
     if (inlineDetails && viewModel.selectedAgent != null) {
         DetailPanel(viewModel, Modifier.fillMaxSize(), scrollState = detailScroll)
         return
@@ -65,12 +66,14 @@ internal fun AnalysisContent(viewModel: WorkspaceViewModel, compact: Boolean, in
                 viewModel.selection.exchange,
                 listOf("BINANCE", "BYBIT"),
                 "거래소",
+                nativePopupOwner = popupOwner,
                 onChange = { viewModel.select(exchange = it) }
             )
             DropdownControl(
                 viewModel.selection.timeframe,
                 listOf("1m", "5m", "15m", "1h", "4h"),
                 "타임프레임",
+                nativePopupOwner = popupOwner,
                 onChange = { viewModel.select(timeframe = it) }
             )
             Spacer(Modifier.weight(1f))

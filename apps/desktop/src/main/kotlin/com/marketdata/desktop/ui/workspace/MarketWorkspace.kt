@@ -44,7 +44,8 @@ import java.awt.Cursor
 internal fun MarketWorkspace(
     viewModel: WorkspaceViewModel,
     titleBar: @Composable () -> Unit = {},
-    showChart: Boolean = true
+    showChart: Boolean = true,
+    popupOwner: java.awt.Component? = null
 ) {
     val scope = rememberCoroutineScope()
     var addDialog by remember { mutableStateOf(false) }
@@ -107,7 +108,8 @@ internal fun MarketWorkspace(
                             HistoryContent(viewModel)
                         } else {
                             AnalysisContent(viewModel, compact, inlineDetails = !layout.hasDetailPanel,
-                                analysisScroll = analysisScroll, detailScroll = detailScroll, showChart = showChart)
+                                analysisScroll = analysisScroll, detailScroll = detailScroll, showChart = showChart,
+                                popupOwner = popupOwner)
                         }
                     }
                     AnimatedVisibility(layout.hasDetailPanel,
