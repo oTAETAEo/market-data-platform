@@ -13,6 +13,7 @@ import com.marketdata.desktop.model.AnalysisRun
 import com.marketdata.desktop.model.AnalysisSelection
 import com.marketdata.desktop.model.MarketAsset
 import com.marketdata.desktop.model.MarketCatalog
+import com.marketdata.desktop.model.ChartCandle
 import com.marketdata.desktop.model.WorkspacePage
 import com.marketdata.engine.MarketStatus
 import kotlinx.coroutines.CancellationException
@@ -42,6 +43,8 @@ internal class WorkspaceViewModel(
     var activeRun by mutableStateOf<AnalysisRun?>(null)
         private set
     var marketStatus by mutableStateOf(MarketStatus.empty())
+        private set
+    var chartCandles by mutableStateOf<List<ChartCandle>>(emptyList())
         private set
     var analysisStage by mutableStateOf("")
         private set
@@ -87,6 +90,16 @@ internal class WorkspaceViewModel(
 
     fun refreshMarketStatus() {
         marketStatus = marketData?.status(selection) ?: MarketStatus("LIVE", 200, null, true)
+        chartCandles = marketData?.recentCandles(selection, 120)?.map {
+            ChartCandle(
+                time = it.openTime().epochSecond,
+                open = it.open().toDouble(),
+                high = it.high().toDouble(),
+                low = it.low().toDouble(),
+                close = it.close().toDouble(),
+                closed = it.closed()
+            )
+        } ?: emptyList()
     }
 
     fun select(asset: MarketAsset = selection.asset, exchange: String = selection.exchange,
@@ -97,6 +110,7 @@ internal class WorkspaceViewModel(
             activeRun = analysisHistory.firstOrNull { it.selection == next }
             selectedAgent = null
             error = null
+            chartCandles = emptyList()
             marketData?.let {
                 it.start(next)
                 marketStatus = MarketStatus("CONNECTING", 0, null, false)

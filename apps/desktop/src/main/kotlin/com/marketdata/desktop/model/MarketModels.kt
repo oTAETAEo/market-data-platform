@@ -14,6 +14,15 @@ internal data class AnalysisSelection(
 
 internal data class AnalysisRun(val selection: AnalysisSelection, val result: AnalysisResult)
 
+internal data class ChartCandle(
+    val time: Long,
+    val open: Double,
+    val high: Double,
+    val low: Double,
+    val close: Double,
+    val closed: Boolean
+)
+
 internal enum class WorkspacePage { ANALYSIS, HISTORY }
 
 internal enum class AgentGroup(val label: String) {

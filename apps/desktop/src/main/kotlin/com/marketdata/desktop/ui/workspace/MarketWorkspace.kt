@@ -41,7 +41,11 @@ import kotlinx.coroutines.launch
 import java.awt.Cursor
 
 @Composable
-internal fun MarketWorkspace(viewModel: WorkspaceViewModel, titleBar: @Composable () -> Unit = {}) {
+internal fun MarketWorkspace(
+    viewModel: WorkspaceViewModel,
+    titleBar: @Composable () -> Unit = {},
+    showChart: Boolean = true
+) {
     val scope = rememberCoroutineScope()
     var addDialog by remember { mutableStateOf(false) }
     var showMarkets by remember { mutableStateOf(false) }
@@ -54,7 +58,7 @@ internal fun MarketWorkspace(viewModel: WorkspaceViewModel, titleBar: @Composabl
     LaunchedEffect(Unit) {
         while (true) {
             viewModel.refreshMarketStatus()
-            kotlinx.coroutines.delay(1_000)
+            kotlinx.coroutines.delay(250)
         }
     }
     val analyze = { scope.launch { viewModel.analyze() }; Unit }
@@ -103,7 +107,7 @@ internal fun MarketWorkspace(viewModel: WorkspaceViewModel, titleBar: @Composabl
                             HistoryContent(viewModel)
                         } else {
                             AnalysisContent(viewModel, compact, inlineDetails = !layout.hasDetailPanel,
-                                analysisScroll = analysisScroll, detailScroll = detailScroll)
+                                analysisScroll = analysisScroll, detailScroll = detailScroll, showChart = showChart)
                         }
                     }
                     AnimatedVisibility(layout.hasDetailPanel,

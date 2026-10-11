@@ -1,6 +1,12 @@
 plugins {
     id 'org.jetbrains.kotlin.jvm'
     id 'org.jetbrains.compose'
+    id 'org.openjfx.javafxplugin'
+}
+
+javafx {
+    version = '21.0.10'
+    modules = ['javafx.base', 'javafx.graphics', 'javafx.controls', 'javafx.web', 'javafx.swing']
 }
 
 dependencies {
@@ -76,4 +82,13 @@ tasks.register('verifyLiveMarket', JavaExec) {
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath
     mainClass = 'com.marketdata.desktop.LiveMarketSmokeKt'
+}
+
+tasks.register('verifyChartRuntime', JavaExec) {
+    group = 'verification'
+    description = 'Loads Lightweight Charts in JavaFX WebView and sends one candle.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.marketdata.desktop.LightweightChartSmokeKt'
+    systemProperty 'java.awt.headless', 'false'
 }

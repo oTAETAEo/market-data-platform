@@ -51,6 +51,16 @@ public class MarketEngine {
                         "마지막 수신: " + status.lastReceivedAt()), candles);
     }
 
+    public List<MarketCandleEvent> recentCandles(String exchange, String symbol, String timeframe, int limit) {
+        if (limit < 1 || limit > MAX_CANDLES) {
+            throw new IllegalArgumentException("limit must be between 1 and " + MAX_CANDLES);
+        }
+        CandleBuffer buffer = buffers.get(new MarketStreamKey(exchange, symbol, timeframe));
+        if (buffer == null) return List.of();
+        List<MarketCandleEvent> snapshot = buffer.snapshot();
+        return snapshot.subList(Math.max(0, snapshot.size() - limit), snapshot.size());
+    }
+
     private void validate(MarketCandleEvent event) {
         if (event == null || event.provider() == null || event.symbol() == null || event.interval() == null
                 || event.openTime() == null || event.closeTime() == null || event.eventTime() == null

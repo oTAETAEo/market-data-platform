@@ -67,7 +67,8 @@ fun main(args: Array<String>) = runBlocking {
                                 .fillMaxWidth()
                                 .height(32.dp)
                         )
-                    }
+                    },
+                    showChart = false
                 )
             }
         }
@@ -192,7 +193,7 @@ fun main(args: Array<String>) = runBlocking {
             capture("analysis-$width")
             click(
                 mainLeft + 70f,
-                if (compact) 480f else 630f
+                if (width <= 420) 435f else if (compact) 480f else 630f
             )
             check(
                 state.selectedAgent == "Technical Analyst"

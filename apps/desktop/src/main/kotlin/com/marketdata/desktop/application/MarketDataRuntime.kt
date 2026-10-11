@@ -5,6 +5,7 @@ import com.marketdata.collector.bybit.client.BybitMarketDataClient
 import com.marketdata.desktop.model.AnalysisSelection
 import com.marketdata.engine.MarketEngine
 import com.marketdata.engine.MarketStatus
+import com.marketdata.core.event.MarketCandleEvent
 import java.util.concurrent.CompletableFuture
 
 internal class MarketDataRuntime(private val engine: MarketEngine) : AutoCloseable {
@@ -37,6 +38,9 @@ internal class MarketDataRuntime(private val engine: MarketEngine) : AutoCloseab
 
     fun status(current: AnalysisSelection): MarketStatus =
         engine.status(current.exchange, current.asset.symbol, current.timeframe)
+
+    fun recentCandles(current: AnalysisSelection, limit: Int): List<MarketCandleEvent> =
+        engine.recentCandles(current.exchange, current.asset.symbol, current.timeframe, limit)
 
     @Synchronized
     override fun close() {

@@ -28,6 +28,7 @@ import com.marketdata.desktop.ui.components.DropdownControl
 import com.marketdata.desktop.ui.components.StatusDot
 import com.marketdata.desktop.ui.components.StatusTag
 import com.marketdata.desktop.ui.components.ToolButton
+import com.marketdata.desktop.ui.chart.LightweightCandlestickChart
 import com.marketdata.desktop.ui.report.DetailPanel
 import com.marketdata.desktop.ui.theme.DeskColors
 import java.time.ZoneId
@@ -37,13 +38,13 @@ private val timeFormat = DateTimeFormatter.ofPattern("HH:mm:ss").withZone(ZoneId
 
 @Composable
 internal fun AnalysisContent(viewModel: WorkspaceViewModel, compact: Boolean, inlineDetails: Boolean,
-                            analysisScroll: ScrollState, detailScroll: ScrollState) {
+                            analysisScroll: ScrollState, detailScroll: ScrollState, showChart: Boolean) {
     if (inlineDetails && viewModel.selectedAgent != null) {
         DetailPanel(viewModel, Modifier.fillMaxSize(), scrollState = detailScroll)
         return
     }
-    Column(Modifier.fillMaxSize().verticalScroll(analysisScroll).padding(if (compact) 16.dp else 24.dp),
-        verticalArrangement = Arrangement.spacedBy(if (compact) 12.dp else 24.dp)) {
+    Column(Modifier.fillMaxSize().padding(if (compact) 12.dp else 24.dp),
+        verticalArrangement = Arrangement.spacedBy(if (compact) 10.dp else 18.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             CoinMark(viewModel.selection.asset, if (compact) 44.dp else 62.dp)
             Spacer(Modifier.width(16.dp))
@@ -64,6 +65,26 @@ internal fun AnalysisContent(viewModel: WorkspaceViewModel, compact: Boolean, in
             StatusDot(connectionLabel(viewModel.marketStatus.connection()),
                 if (viewModel.marketStatus.connection() == "LIVE") DeskColors.green else DeskColors.muted)
         }
+        if (showChart) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text("실시간 캔들", style = MaterialTheme.typography.subtitle1)
+                    Spacer(Modifier.weight(1f))
+                    Text("최근 ${viewModel.chartCandles.size}개", color = DeskColors.muted,
+                        style = MaterialTheme.typography.caption)
+                }
+                LightweightCandlestickChart(
+                    chartKey = "${viewModel.selection.exchange}:${viewModel.selection.asset.symbol}:${viewModel.selection.timeframe}",
+                    candles = viewModel.chartCandles,
+                    height = if (compact) 140.dp else 220.dp,
+                    embedWebView = true
+                )
+            }
+        }
+        Column(
+            Modifier.weight(1f).fillMaxWidth().verticalScroll(analysisScroll),
+            verticalArrangement = Arrangement.spacedBy(if (compact) 12.dp else 20.dp)
+        ) {
         if (!compact) Row(Modifier.fillMaxWidth().border(BorderStroke(1.dp, DeskColors.line), RoundedCornerShape(6.dp)).padding(vertical = 16.dp)) {
             Metric("수집된 캔들", viewModel.marketStatus.candleCount().toString(), "개", Modifier.weight(1f))
             Box(Modifier.width(1.dp).height(44.dp).background(DeskColors.line))
@@ -101,6 +122,7 @@ internal fun AnalysisContent(viewModel: WorkspaceViewModel, compact: Boolean, in
         }
         Text(if (viewModel.marketStatus.analysisReady()) "시장 데이터 준비 완료" else "확정 캔들 200개 수집 중",
             style = MaterialTheme.typography.caption, color = DeskColors.muted)
+        }
     }
 }
 

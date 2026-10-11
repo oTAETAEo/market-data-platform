@@ -26,6 +26,9 @@ class MarketEngineTest {
         assertThat(engine.status("BINANCE", "BTCUSDT", "1m"))
                 .extracting(MarketStatus::connection, MarketStatus::candleCount, MarketStatus::analysisReady)
                 .containsExactly("LIVE", 500, true);
+        assertThat(engine.recentCandles("BINANCE", "BTCUSDT", "1m", 80))
+                .hasSize(80)
+                .isSortedAccordingTo(java.util.Comparator.comparing(MarketCandleEvent::openTime));
     }
 
     @Test
