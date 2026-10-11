@@ -43,7 +43,6 @@ internal fun AnalysisContent(viewModel: WorkspaceViewModel, compact: Boolean, in
         DetailPanel(viewModel, Modifier.fillMaxSize(), scrollState = detailScroll)
         return
     }
-    var openSelector by remember { mutableStateOf<String?>(null) }
     Column(
         Modifier.fillMaxSize().verticalScroll(analysisScroll).padding(if (compact) 12.dp else 24.dp),
         verticalArrangement = Arrangement.spacedBy(if (compact) 10.dp else 18.dp)
@@ -66,19 +65,13 @@ internal fun AnalysisContent(viewModel: WorkspaceViewModel, compact: Boolean, in
                 viewModel.selection.exchange,
                 listOf("BINANCE", "BYBIT"),
                 "거래소",
-                onChange = { viewModel.select(exchange = it) },
-                onExpandedChange = { expanded ->
-                    openSelector = if (expanded) "exchange" else openSelector.takeUnless { it == "exchange" }
-                }
+                onChange = { viewModel.select(exchange = it) }
             )
             DropdownControl(
                 viewModel.selection.timeframe,
                 listOf("1m", "5m", "15m", "1h", "4h"),
                 "타임프레임",
-                onChange = { viewModel.select(timeframe = it) },
-                onExpandedChange = { expanded ->
-                    openSelector = if (expanded) "timeframe" else openSelector.takeUnless { it == "timeframe" }
-                }
+                onChange = { viewModel.select(timeframe = it) }
             )
             Spacer(Modifier.weight(1f))
             StatusDot(connectionLabel(viewModel.marketStatus.connection()),
@@ -95,8 +88,7 @@ internal fun AnalysisContent(viewModel: WorkspaceViewModel, compact: Boolean, in
                 LightweightCandlestickChart(
                     chartKey = "${viewModel.selection.exchange}:${viewModel.selection.asset.symbol}:${viewModel.selection.timeframe}",
                     candles = viewModel.chartCandles,
-                    height = if (compact) 140.dp else 220.dp,
-                    embedWebView = openSelector == null
+                    height = if (compact) 140.dp else 220.dp
                 )
             }
         }

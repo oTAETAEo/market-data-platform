@@ -31,8 +31,7 @@ import java.util.concurrent.TimeUnit
 internal fun LightweightCandlestickChart(
     chartKey: String,
     candles: List<ChartCandle>,
-    height: Dp,
-    embedWebView: Boolean
+    height: Dp
 ) {
     if (candles.isEmpty()) {
         Box(
@@ -40,7 +39,7 @@ internal fun LightweightCandlestickChart(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                if (candles.isEmpty()) "실시간 캔들을 불러오는 중입니다." else "실시간 캔들 차트",
+                "실시간 캔들을 불러오는 중입니다.",
                 color = DeskColors.muted,
                 style = MaterialTheme.typography.body2
             )
@@ -53,10 +52,7 @@ internal fun LightweightCandlestickChart(
     Box(Modifier.fillMaxWidth().height(height).background(DeskColors.elevated)) {
         SwingPanel(
             factory = { panel },
-            update = {
-                it.isVisible = embedWebView
-                if (embedWebView) it.update(chartKey, candles)
-            },
+            update = { it.update(chartKey, candles) },
             modifier = Modifier.fillMaxSize(),
             background = Color(0xFF121414)
         )

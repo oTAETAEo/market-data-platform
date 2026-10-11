@@ -19,6 +19,8 @@ import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 
 fun main() {
+    // Allow Compose menus and clipping to render over the embedded JavaFX chart.
+    System.setProperty("compose.interop.blending", "true")
     if (isMacOs) System.setProperty("apple.awt.application.appearance", "NSAppearanceNameDarkAqua")
     application {
         val desktop = remember { DesktopCompositionRoot.createApplication() }
