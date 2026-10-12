@@ -101,3 +101,12 @@ tasks.register('verifyChartPopup', JavaExec) {
     mainClass = 'com.marketdata.desktop.ChartPopupSmokeKt'
     systemProperty 'java.awt.headless', 'false'
 }
+
+tasks.register('verifyChartRecomposition', JavaExec) {
+    group = 'verification'
+    description = 'Checks live price updates do not detach the chart during Compose recomposition.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.marketdata.desktop.ChartRecompositionSmokeKt'
+    systemProperty 'java.awt.headless', 'false'
+}

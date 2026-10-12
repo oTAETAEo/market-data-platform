@@ -48,10 +48,11 @@ internal fun LightweightCandlestickChart(
     }
 
     val panel = remember { LightweightChartPanel() }
+    val panelFactory = remember(panel) { { panel } }
     DisposableEffect(panel) { onDispose(panel::dispose) }
     Box(Modifier.fillMaxWidth().height(height).background(DeskColors.elevated)) {
         SwingPanel(
-            factory = { panel },
+            factory = panelFactory,
             update = { it.update(chartKey, candles) },
             modifier = Modifier.fillMaxSize(),
             background = Color(0xFF121414)
