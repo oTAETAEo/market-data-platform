@@ -210,12 +210,14 @@ public class BybitMarketDataClient implements AutoCloseable {
             rows.forEach(chronological::add);
             Collections.reverse(chronological);
             int count = 0;
+            long snapshotTime = Instant.now().toEpochMilli();
             for (JsonNode row : chronological) {
                 if (!isCurrent(runId)) {
                     return count;
                 }
                 long openTime = row.get(0).asLong();
                 long closeTime = closeTime(openTime, interval);
+                boolean closed = closeTime < snapshotTime;
                 onCandle.accept(newEvent(
                         symbol,
                         interval,
@@ -226,8 +228,8 @@ public class BybitMarketDataClient implements AutoCloseable {
                         decimal(row.get(5)),
                         openTime,
                         closeTime,
-                        closeTime < Instant.now().toEpochMilli(),
-                        closeTime
+                        closed,
+                        closed ? closeTime : snapshotTime
                 ));
                 count++;
             }

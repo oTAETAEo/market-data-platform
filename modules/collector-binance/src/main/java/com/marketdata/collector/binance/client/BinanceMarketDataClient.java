@@ -32,7 +32,7 @@ public class BinanceMarketDataClient implements AutoCloseable {
     private static final int REST_LIMIT = 300;
     private static final int MAX_MESSAGE_CHARS = 1_048_576;
     private static final String REST_URL = "https://fapi.binance.com";
-    private static final String WS_URL = "wss://fstream.binance.com/ws/";
+    private static final String WS_URL = "wss://fstream.binance.com/market/ws/";
     private static final String PROVIDER = "BINANCE";
     private static final String VENUE = "BINANCE_USDM_FUTURES";
     private static final String ASSET_CLASS = "CRYPTO_FUTURES";
@@ -193,10 +193,13 @@ public class BinanceMarketDataClient implements AutoCloseable {
                 throw new IllegalStateException("Binance REST warmup failed");
             }
             int count = 0;
+            long snapshotTime = Instant.now().toEpochMilli();
             for (JsonNode row : root) {
                 if (!isCurrent(runId)) {
                     return count;
                 }
+                long closeTime = row.get(6).asLong();
+                boolean closed = closeTime < snapshotTime;
                 onCandle.accept(newEvent(
                         symbol,
                         interval,
@@ -206,9 +209,9 @@ public class BinanceMarketDataClient implements AutoCloseable {
                         decimal(row.get(4)),
                         decimal(row.get(5)),
                         row.get(0).asLong(),
-                        row.get(6).asLong(),
-                        row.get(6).asLong() < Instant.now().toEpochMilli(),
-                        row.get(6).asLong()
+                        closeTime,
+                        closed,
+                        closed ? closeTime : snapshotTime
                 ));
                 count++;
             }

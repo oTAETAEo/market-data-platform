@@ -66,6 +66,28 @@ class BinanceMarketDataClientTest {
     }
 
     @Test
+    void warmupDoesNotTimestampTheOpenCandleInTheFuture() throws Exception {
+        long openTime = Instant.now().toEpochMilli() - 60_000;
+        long closeTime = openTime + 900_000 - 1;
+        server = server("""
+                [[%d,"1.0","2.0","0.5","1.5","10.0",%d]]
+                """.formatted(openTime, closeTime), new AtomicReference<>());
+        client = client("http://127.0.0.1:" + server.getAddress().getPort(), "ws://127.0.0.1:1/");
+        client.start("BTCUSDT", "15m").get(2, TimeUnit.SECONDS);
+
+        MarketCandleEvent warmup = events.getFirst();
+        assertThat(warmup.closed()).isFalse();
+        assertThat(warmup.eventTime()).isBefore(warmup.closeTime()).isBeforeOrEqualTo(Instant.now());
+        long liveTime = Instant.now().toEpochMilli() + 1;
+        client.handleWebSocketText("""
+                {"e":"kline","E":%d,"k":{"s":"BTCUSDT","i":"15m","t":%d,"T":%d,
+                "o":"1.0","h":"2.0","l":"0.5","c":"1.8","v":"11.0","x":false}}
+                """.formatted(liveTime, openTime, closeTime), true, client.currentRunId());
+        assertThat(events.getLast().eventTime()).isAfterOrEqualTo(warmup.eventTime());
+        assertThat(events.getLast().close()).isEqualByComparingTo("1.8");
+    }
+
+    @Test
     void rejectsUnsupportedInputBeforeOpeningCollection() {
         client = client("http://127.0.0.1:1", "ws://127.0.0.1:1/");
 

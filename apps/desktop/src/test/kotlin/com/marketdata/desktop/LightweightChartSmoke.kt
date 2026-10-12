@@ -16,11 +16,21 @@ fun main() {
         )
         check(panel.dataPointCount(5) == 1) { "Candle data did not reach Lightweight Charts" }
         check(!panel.lastCandleClosed(5)) { "An in-progress candle was marked as closed" }
+        check(panel.lastCandleClose(5) == 102.0)
+        panel.update(
+            "BINANCE:BTCUSDT:15m",
+            listOf(ChartCandle(1_700_000_000, 100.0, 103.0, 99.0, 102.5, false))
+        )
+        check(panel.dataPointCount(5) == 1 && panel.lastCandleClose(5) == 102.5) {
+            "Live price did not update the existing candle in the chart series"
+        }
+        check(!panel.lastCandleClosed(5)) { "Live price update prematurely closed the candle" }
         panel.update(
             "BINANCE:BTCUSDT:15m",
             listOf(ChartCandle(1_700_000_000, 100.0, 104.0, 99.0, 103.0, true))
         )
         check(panel.lastCandleClosed(5)) { "Confirmed candle data did not replace the in-progress candle" }
+        check(panel.lastCandleClose(5) == 103.0)
         panel.update(
             "BINANCE:BTCUSDT:15m",
             listOf(
@@ -33,6 +43,6 @@ fun main() {
         println("Lightweight Charts runtime smoke passed")
     } finally {
         panel.dispose()
-        Platform.exit()
+        Platform.runLater { Platform.exit() }
     }
 }

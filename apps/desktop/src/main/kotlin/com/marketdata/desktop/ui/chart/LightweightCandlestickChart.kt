@@ -125,6 +125,16 @@ internal class LightweightChartPanel : JFXPanel() {
         return result.get(timeoutSeconds, TimeUnit.SECONDS)
     }
 
+    fun lastCandleClose(timeoutSeconds: Long): Double {
+        val result = CompletableFuture<Double>()
+        Platform.runLater {
+            result.complete((webView?.engine?.executeScript(
+                "series.dataByIndex(series.data().length - 1).close"
+            ) as Number).toDouble())
+        }
+        return result.get(timeoutSeconds, TimeUnit.SECONDS)
+    }
+
     private fun pushPending() {
         if (disposed || !ready || pendingKey.isBlank()) return
         webView?.engine?.executeScript("window.marketChartUpdate($pendingKey,$pendingData)")
