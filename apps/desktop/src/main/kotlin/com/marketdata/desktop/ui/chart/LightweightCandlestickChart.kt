@@ -3,6 +3,7 @@
 package com.marketdata.desktop.ui.chart
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,11 +12,15 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.SwingPanel
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.toComposeImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.Dp
 import com.marketdata.desktop.model.ChartCandle
 import com.marketdata.desktop.ui.theme.DeskColors
@@ -26,12 +31,15 @@ import javafx.scene.Scene
 import javafx.scene.web.WebView
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
+import java.awt.image.BufferedImage
+import javax.swing.SwingUtilities
 
 @Composable
 internal fun LightweightCandlestickChart(
     chartKey: String,
     candles: List<ChartCandle>,
-    height: Dp
+    height: Dp,
+    scrolling: Boolean = false
 ) {
     if (candles.isEmpty()) {
         Box(
@@ -49,14 +57,21 @@ internal fun LightweightCandlestickChart(
 
     val panel = remember { LightweightChartPanel() }
     val panelFactory = remember(panel) { { panel } }
+    // Scroll and clip the completed frame on Compose's clock, not the native Swing surface's clock.
+    val scrollFrame = remember(scrolling, chartKey) { if (scrolling) panel.captureFrame() else null }
     DisposableEffect(panel) { onDispose(panel::dispose) }
+    SideEffect { panel.update(chartKey, candles) }
     Box(Modifier.fillMaxWidth().height(height).background(DeskColors.elevated)) {
-        SwingPanel(
-            factory = panelFactory,
-            update = { it.update(chartKey, candles) },
-            modifier = Modifier.fillMaxSize(),
-            background = Color(0xFF121414)
-        )
+        if (scrollFrame != null) {
+            Image(scrollFrame, contentDescription = "실시간 캔들 차트", modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.FillBounds)
+        } else {
+            SwingPanel(
+                factory = panelFactory,
+                modifier = Modifier.fillMaxSize(),
+                background = Color(0xFF121414)
+            )
+        }
     }
 }
 
@@ -105,6 +120,30 @@ internal class LightweightChartPanel : JFXPanel() {
             webView = null
             scene = null
         }
+    }
+
+    fun captureFrame(): ImageBitmap? {
+        var frame: ImageBitmap? = null
+        val capture = {
+            if (width > 0 && height > 0 && ready && !disposed) {
+                val transform = graphicsConfiguration?.defaultTransform
+                val scaleX = transform?.scaleX ?: 1.0
+                val scaleY = transform?.scaleY ?: 1.0
+                val buffer = BufferedImage((width * scaleX).toInt(), (height * scaleY).toInt(), BufferedImage.TYPE_INT_ARGB)
+                val graphics = buffer.createGraphics()
+                try {
+                    graphics.scale(scaleX, scaleY)
+                    graphics.color = background
+                    graphics.fillRect(0, 0, width, height)
+                    paint(graphics)
+                    frame = buffer.toComposeImageBitmap()
+                } finally {
+                    graphics.dispose()
+                }
+            }
+        }
+        if (SwingUtilities.isEventDispatchThread()) capture() else SwingUtilities.invokeAndWait(capture)
+        return frame
     }
 
     fun awaitReady(timeoutSeconds: Long): Boolean =

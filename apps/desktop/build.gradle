@@ -110,3 +110,12 @@ tasks.register('verifyChartRecomposition', JavaExec) {
     mainClass = 'com.marketdata.desktop.ChartRecompositionSmokeKt'
     systemProperty 'java.awt.headless', 'false'
 }
+
+tasks.register('verifyChartScrolling', JavaExec) {
+    group = 'verification'
+    description = 'Checks scrolling uses a nonblank Compose frame and restores the live interactive chart.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.marketdata.desktop.ChartScrollingSmokeKt'
+    systemProperty 'java.awt.headless', 'false'
+}
