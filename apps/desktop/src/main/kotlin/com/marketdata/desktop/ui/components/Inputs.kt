@@ -29,6 +29,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.marketdata.desktop.ui.theme.DeskColors
 import java.awt.Component
+import java.awt.event.MouseEvent
 import kotlin.math.roundToInt
 
 @Composable
@@ -77,7 +78,7 @@ internal fun DropdownControl(
             modifier = Modifier.onGloballyPositioned { anchor = it.boundsInWindow() }
                 .onPointerEvent(PointerEventType.Press, PointerEventPass.Initial) { event ->
                     if (nativePopupOwner != null && event.buttons.isPrimaryPressed) {
-                        menu.captureButtonPress()
+                        menu.captureButtonPress((event.nativeEvent as? MouseEvent)?.`when`)
                         menu.toggle(nativePopupOwner, (anchor.left / density).roundToInt(), (anchor.bottom / density).roundToInt()) {
                             menu.setOptions(value, values, onChange)
                         }

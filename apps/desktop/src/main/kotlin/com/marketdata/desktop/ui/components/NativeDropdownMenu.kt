@@ -37,9 +37,9 @@ internal class NativeDropdownMenu : JPopupMenu() {
         })
     }
 
-    fun captureButtonPress() {
+    fun captureButtonPress(pressTime: Long? = null) {
         // Swing can dismiss the popup before Compose handles the same mouse press.
-        closeOnToggle = isVisible || dismissalPressTime == EventQueue.getMostRecentEventTime()
+        closeOnToggle = isVisible || (pressTime != null && dismissalPressTime == pressTime)
     }
 
     fun toggle(owner: Component, x: Int, y: Int, prepare: () -> Unit) {

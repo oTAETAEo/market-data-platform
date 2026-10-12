@@ -15,6 +15,7 @@ import java.awt.Point
 import java.awt.Rectangle
 import java.awt.event.AWTEventListener
 import java.awt.event.WindowEvent
+import java.awt.event.MouseEvent
 import javax.swing.JMenuItem
 import javax.swing.MenuSelectionManager
 import javax.swing.SwingUtilities
@@ -88,10 +89,29 @@ fun main() {
             menu.toggle(window.contentPane, 160, 100) {}
             check(!menu.isVisible) { "Button did not close the open dropdown" }
         }
+        val pressTime = System.currentTimeMillis()
+        SwingUtilities.invokeAndWait {
+            menu.toggle(window.contentPane, 160, 100) {}
+            val queue = Toolkit.getDefaultToolkit().systemEventQueue
+            queue.postEvent(MouseEvent(window.contentPane, MouseEvent.MOUSE_PRESSED,
+                pressTime, MouseEvent.BUTTON1_DOWN_MASK, 160, 90, 1, false, MouseEvent.BUTTON1))
+            queue.postEvent(MouseEvent(window.contentPane, MouseEvent.MOUSE_RELEASED,
+                pressTime + 1, 0, 160, 90, 1, false, MouseEvent.BUTTON1))
+        }
+        SwingUtilities.invokeAndWait {
+            check(!menu.isVisible) { "Native outside press did not dismiss the dropdown" }
+            menu.captureButtonPress(pressTime)
+            menu.toggle(window.contentPane, 160, 100) {}
+            check(!menu.isVisible) { "Delayed short press reopened the dropdown after release" }
+            menu.captureButtonPress(pressTime + 2)
+            menu.toggle(window.contentPane, 160, 100) {}
+            check(menu.isVisible) { "New press did not reopen the dropdown" }
+            menu.isVisible = false
+        }
         println("Chart popup smoke passed: initial position, repeated openings, stable bounds, selection and chart visibility")
     } finally {
         Toolkit.getDefaultToolkit().removeAWTEventListener(listener)
         SwingUtilities.invokeAndWait { menu.isVisible = false; window.dispose(); chart.dispose() }
-        Platform.exit()
+        Platform.runLater { Platform.exit() }
     }
 }
