@@ -6,6 +6,12 @@ import javafx.application.Platform
 import javax.swing.SwingUtilities
 
 fun main() {
+    check(Platform::class.java.module.name == "javafx.graphics") {
+        "JavaFX graphics must be loaded as a named module"
+    }
+    check(LightweightChartPanel::class.java.superclass.module.name == "javafx.swing") {
+        "JavaFX Swing integration must be loaded as a named module"
+    }
     lateinit var panel: LightweightChartPanel
     SwingUtilities.invokeAndWait { panel = LightweightChartPanel() }
     try {

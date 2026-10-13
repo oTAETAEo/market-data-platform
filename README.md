@@ -147,6 +147,8 @@ uv pip install --python .venv-tradingagents/bin/python -e /Users/apple/Desktop/T
 ./gradlew :apps:desktop:run
 ```
 
+IntelliJ IDEA에서는 공유 실행 구성 `MarketDataPlatform`을 사용합니다. 이 Gradle 실행 경로는 JavaFX를 module path에서 로드하며, 배포 앱에도 동일한 모듈 구성을 포함합니다.
+
 앱의 설정 아이콘에서 AI 제공자, 모델, API 키를 입력합니다. 키는 현재 세션에만 유지됩니다.
 
 

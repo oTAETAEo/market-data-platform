@@ -22,11 +22,49 @@ dependencies {
     implementation 'com.halilibo.compose-richtext:richtext-ui-material:0.17.0'
 }
 
+def javafxModuleFiles = files(providers.provider {
+    configurations.runtimeClasspath.resolvedConfiguration.resolvedArtifacts
+            .findAll { it.moduleVersion.id.group == 'org.openjfx' }
+            .collect { it.file }
+})
+def javafxResources = layout.buildDirectory.dir('javafx-resources')
+def prepareJavafxModules = tasks.register('prepareJavafxModules', Sync) {
+    from javafxModuleFiles
+    into javafxResources.map { it.dir('common/javafx') }
+}
+
+tasks.withType(JavaExec).configureEach {
+    dependsOn prepareJavafxModules
+    jvmArgumentProviders.add({
+        ['--module-path', javafxModuleFiles.asPath, '--add-modules=javafx.swing,javafx.web']
+    } as CommandLineArgumentProvider)
+    doFirst {
+        classpath = classpath.minus(javafxModuleFiles)
+        jvmArgs = jvmArgs.findAll { !it.startsWith('--module-path=') }
+    }
+}
+
+tasks.withType(Test).configureEach {
+    jvmArgumentProviders.add({
+        ['--module-path', javafxModuleFiles.asPath, '--add-modules=javafx.swing,javafx.web']
+    } as CommandLineArgumentProvider)
+    doFirst { classpath = classpath.minus(javafxModuleFiles) }
+}
+
 compose.desktop {
     application {
         mainClass = 'com.marketdata.desktop.MainKt'
+        disableDefaultConfiguration()
+        fromFiles(configurations.runtimeClasspath.minus(javafxModuleFiles))
+        fromFiles(tasks.named('jar', Jar).flatMap { it.archiveFile })
+        mainJar.set(tasks.named('jar', Jar).flatMap { it.archiveFile })
+        dependsOn('jar', 'prepareJavafxModules')
+        jvmArgs('--module-path=$APPDIR/resources/javafx', '--add-modules=javafx.swing,javafx.web')
 
         nativeDistributions {
+            appResourcesRootDir.set(prepareJavafxModules.map { javafxResources.get() })
+            modules('java.logging', 'java.net.http', 'java.xml', 'jdk.crypto.ec',
+                    'jdk.jsobject', 'jdk.xml.dom', 'jdk.unsupported', 'jdk.unsupported.desktop')
             packageName = 'MarketDataPlatform'
             packageVersion = '0.1.0'
 
