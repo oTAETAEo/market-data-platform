@@ -1,11 +1,10 @@
 package com.marketdata.desktop
 
-import androidx.compose.foundation.layout.size
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.ComposeWindow
-import androidx.compose.ui.awt.SwingPanel
 import androidx.compose.ui.unit.dp
 import com.marketdata.desktop.ui.chart.LightweightChartPanel
+import com.marketdata.desktop.ui.chart.LightweightCandlestickChart
+import com.marketdata.desktop.model.ChartCandle
 import com.marketdata.desktop.ui.components.NativeDropdownMenu
 import com.marketdata.desktop.ui.theme.MarketTheme
 import javafx.application.Platform
@@ -34,7 +33,8 @@ fun main() {
         window.setLocation(200, 150)
         window.setContent {
             MarketTheme {
-                SwingPanel(factory = { chart }, modifier = Modifier.size(600.dp, 400.dp))
+                LightweightCandlestickChart("BINANCE:BTCUSDT:15m",
+                    listOf(ChartCandle(1_700_000_000, 100.0, 120.0, 99.0, 102.0, false)), 400.dp, renderer = chart)
             }
         }
         window.isVisible = true
@@ -48,6 +48,11 @@ fun main() {
     Toolkit.getDefaultToolkit().addAWTEventListener(listener, AWTEvent.WINDOW_EVENT_MASK)
     try {
         check(chart.awaitReady(30)) { "Chart did not initialize" }
+        val frameDeadline = System.nanoTime() + 5_000_000_000L
+        while (chart.captureFrame() == null) {
+            check(System.nanoTime() < frameDeadline) { "Chart did not render" }
+            Thread.sleep(20)
+        }
         val expected = Point()
         repeat(3) {
             val bounds = Rectangle()
@@ -57,7 +62,7 @@ fun main() {
                 expected.translate(160, 100)
                 menu.show(window.contentPane, 160, 100)
                 check(menu.locationOnScreen == expected) { "Menu opened away from its anchor" }
-                check(chart.isShowing) { "Menu hid the chart" }
+                check(chart.captureFrame() != null) { "Menu cleared the chart frame" }
                 check(MenuSelectionManager.defaultManager().selectedPath.contains(menu))
                 bounds.setBounds(SwingUtilities.getWindowAncestor(menu).bounds)
             }

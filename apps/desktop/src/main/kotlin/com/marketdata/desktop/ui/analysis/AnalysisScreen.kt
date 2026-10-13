@@ -91,8 +91,7 @@ internal fun AnalysisContent(viewModel: WorkspaceViewModel, compact: Boolean, in
                 LightweightCandlestickChart(
                     chartKey = "${viewModel.selection.exchange}:${viewModel.selection.asset.symbol}:${viewModel.selection.timeframe}",
                     candles = viewModel.chartCandles,
-                    height = if (compact) 140.dp else 220.dp,
-                    scrolling = analysisScroll.isScrollInProgress
+                    height = if (compact) 140.dp else 220.dp
                 )
             }
         }

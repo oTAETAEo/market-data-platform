@@ -129,6 +129,7 @@ tasks.register('verifyChartRuntime', JavaExec) {
     classpath = sourceSets.test.runtimeClasspath
     mainClass = 'com.marketdata.desktop.LightweightChartSmokeKt'
     systemProperty 'java.awt.headless', 'false'
+    args layout.buildDirectory.dir('reports/chart-runtime').get().asFile.absolutePath
 }
 
 tasks.register('verifyChartPopup', JavaExec) {

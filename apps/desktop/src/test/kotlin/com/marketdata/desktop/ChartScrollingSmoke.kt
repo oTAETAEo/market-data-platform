@@ -60,14 +60,14 @@ fun main() = runBlocking {
     var chart: LightweightChartPanel? = null
     SwingUtilities.invokeAndWait {
         window = ComposeWindow().apply {
+            chart = LightweightChartPanel()
             setSize(640, 480)
             setContent {
                 MarketTheme {
                     Column(Modifier.fillMaxSize().verticalScroll(scroll)) {
                         Spacer(Modifier.height(120.dp))
                         Box(Modifier.onGloballyPositioned { chartTop.set(it.positionInRoot().y) }) {
-                            LightweightCandlestickChart("BINANCE:BTCUSDT:15m", candles.value, 220.dp,
-                                scrolling = scroll.isScrollInProgress)
+                            LightweightCandlestickChart("BINANCE:BTCUSDT:15m", candles.value, 220.dp, renderer = chart)
                         }
                         Spacer(Modifier.height(800.dp))
                     }
@@ -77,34 +77,30 @@ fun main() = runBlocking {
         }
     }
     try {
-        awaitScrollingCondition("Chart did not attach") {
-            SwingUtilities.invokeAndWait { chart = findScrollingChart(window.contentPane) }
-            chart != null
-        }
         val panel = chart!!
         check(panel.awaitReady(30))
         awaitScrollingCondition("Chart snapshot was blank") { hasChartPixels(panel.captureFrame()) }
         val initialTop = chartTop.get()
-        scroll.scroll {
+        repeat(4) {
             for (delta in listOf(30f, 80f, 110f, -55f, -120f)) {
-                scrollBy(delta)
-                awaitScrollingCondition("Scrolling did not use the Compose frame at the content position") {
-                    var nativeAbsent = false
-                    SwingUtilities.invokeAndWait { nativeAbsent = findScrollingChart(window.contentPane) == null }
-                    nativeAbsent && abs(chartTop.get() - (initialTop - scroll.value)) < 1f
+                scroll.scroll {
+                    scrollBy(delta)
+                    awaitScrollingCondition("Scrolling did not use the Compose frame at the content position") {
+                        var nativeAbsent = false
+                        SwingUtilities.invokeAndWait { nativeAbsent = findScrollingChart(window.contentPane) == null }
+                        nativeAbsent && abs(chartTop.get() - (initialTop - scroll.value)) < 1f
+                    }
+                    check(hasChartPixels(panel.captureFrame())) { "Scrolling cleared the rendered frame" }
                 }
+                check(hasChartPixels(panel.captureFrame())) { "Scroll stop cleared the rendered frame" }
             }
-            candles.value = listOf(candles.value.single().copy(close = 113.0))
-            awaitScrollingCondition("Live data stopped updating while scrolling") { panel.lastCandleClose(5) == 113.0 }
+            candles.value = listOf(candles.value.single().copy(close = 113.0 + it))
+            awaitScrollingCondition("Live data stopped updating while scrolling") { panel.lastCandleClose(5) == 113.0 + it }
         }
-        awaitScrollingCondition("Interactive chart did not return after scrolling") {
-            var restored = false
-            SwingUtilities.invokeAndWait { restored = findScrollingChart(window.contentPane) === panel && panel.isShowing }
-            restored
-        }
-        check(panel.lastCandleClose(5) == 113.0)
-        awaitScrollingCondition("Restored chart was blank") { hasChartPixels(panel.captureFrame()) }
-        println("Chart scrolling smoke passed: nonblank frame, synchronized up/down movement, live data and restored WebView")
+        check(panel.lastCandleClose(5) == 116.0)
+        SwingUtilities.invokeAndWait { check(panel.parent == null) }
+        check(hasChartPixels(panel.captureFrame()))
+        println("Chart scrolling smoke passed: 20 scroll start/stop cycles, continuous nonblank frames and live data")
     } finally {
         SwingUtilities.invokeAndWait { chart?.dispose(); window.dispose() }
         Platform.runLater { Platform.exit() }
