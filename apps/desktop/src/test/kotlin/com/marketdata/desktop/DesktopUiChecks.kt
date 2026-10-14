@@ -10,6 +10,7 @@ import com.marketdata.desktop.model.WorkspacePage
 import com.marketdata.desktop.ui.layout.WorkspaceLayout
 import com.marketdata.desktop.ui.layout.sidebarWidth
 import com.marketdata.desktop.ui.theme.MarketTheme
+import com.marketdata.desktop.ui.theme.deskPalette
 import com.marketdata.desktop.ui.workspace.MarketWorkspace
 
 import androidx.compose.foundation.layout.Spacer
@@ -17,6 +18,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.ui.ImageComposeScene
 import androidx.compose.ui.Modifier
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
@@ -49,6 +52,7 @@ fun main(args: Array<String>) = runBlocking {
     )
     ) {
         val state = DesktopCompositionRoot.createWorkspace()
+        val dark = mutableStateOf(true)
         val layout = WorkspaceLayout.forWidth(width.toFloat())
         val narrow = !layout.hasSidebar
         val compact = !layout.hasDetailPanel || height < 800
@@ -58,7 +62,7 @@ fun main(args: Array<String>) = runBlocking {
             density = Density(1f),
             coroutineContext = coroutineContext
         ) {
-            MarketTheme {
+            MarketTheme(dark.value) {
                 MarketWorkspace(
                     state,
                     titleBar = {
@@ -68,7 +72,8 @@ fun main(args: Array<String>) = runBlocking {
                                 .height(32.dp)
                         )
                     },
-                    showChart = false
+                    showChart = false,
+                    onToggleTheme = { dark.value = !dark.value }
                 )
             }
         }
@@ -142,8 +147,7 @@ fun main(args: Array<String>) = runBlocking {
                 check(palette.size > 80) {
                     "Blank or incomplete render: $name"
                 }
-                val chromeColor =
-                    java.awt.Color(8, 9, 9).rgb
+                val chromeColor = deskPalette(dark.value).background.toArgb()
                 for (x in 0 until viewportWidth step 8) {
                     check(
                         image.getRGB(x, 16) == chromeColor
@@ -162,6 +166,11 @@ fun main(args: Array<String>) = runBlocking {
                     8f
                 }
             capture("workspace-$width")
+            click(width - 80f, 64f)
+            check(!dark.value) { "Theme switch did not enable light mode" }
+            capture("light-workspace-$width")
+            click(width - 80f, 64f)
+            check(dark.value)
             click(
                 mainLeft + 142f,
                 126f
@@ -201,6 +210,15 @@ fun main(args: Array<String>) = runBlocking {
                 "Agent card is not clickable"
             }
             capture("report-$width")
+            val themeSelection = state.selection
+            val themeReport = state.activeRun
+            click(width - 80f, 64f)
+            check(!dark.value)
+            capture("light-report-$width")
+            check(state.selection == themeSelection && state.activeRun == themeReport && state.selectedAgent == "Technical Analyst") {
+                "Theme switching changed the market selection or report"
+            }
+            click(width - 80f, 64f)
             click(
                 mainLeft + 142f,
                 126f

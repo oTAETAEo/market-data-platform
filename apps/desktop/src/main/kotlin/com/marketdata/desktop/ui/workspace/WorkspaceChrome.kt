@@ -14,6 +14,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.marketdata.desktop.model.WorkspacePage
 import com.marketdata.desktop.presentation.WorkspaceViewModel
@@ -27,7 +29,7 @@ import com.marketdata.desktop.ui.theme.DeskColors
 
 @Composable
 internal fun TopBar(viewModel: WorkspaceViewModel, layout: WorkspaceLayout, marketListVisible: Boolean,
-                    onSettings: () -> Unit, onToggleMarkets: () -> Unit) {
+                    onSettings: () -> Unit, onToggleTheme: () -> Unit, onToggleMarkets: () -> Unit) {
     Row(Modifier.fillMaxWidth().height(64.dp).padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
         if (!layout.hasSidebar) {
             ToolButton(if (marketListVisible) Icons.Default.Close else Icons.Default.Menu,
@@ -38,6 +40,14 @@ internal fun TopBar(viewModel: WorkspaceViewModel, layout: WorkspaceLayout, mark
             SearchField(viewModel.query, { viewModel.updateQuery(it) }, "종목 검색", Modifier.widthIn(max = 560.dp).fillMaxWidth())
         }
         Spacer(Modifier.width(16.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("다크 모드", style = MaterialTheme.typography.caption, color = DeskColors.muted)
+            Switch(checked = !MaterialTheme.colors.isLight, onCheckedChange = { onToggleTheme() },
+                colors = SwitchDefaults.colors(checkedThumbColor = DeskColors.green,
+                    uncheckedThumbColor = DeskColors.muted, uncheckedTrackColor = DeskColors.line),
+                modifier = Modifier.semantics { contentDescription = "다크 모드 전환" })
+        }
+        Spacer(Modifier.width(8.dp))
         ToolButton(Icons.Default.Settings, "AI 설정", onClick = onSettings)
     }
 }
@@ -73,9 +83,9 @@ internal fun AnalysisBar(viewModel: WorkspaceViewModel, layout: WorkspaceLayout,
         }
         Row(if (narrow) Modifier else Modifier.weight(1f), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
             Button(onClick = onAnalyze, enabled = viewModel.canAnalyze, shape = CircleShape,
-                colors = ButtonDefaults.buttonColors(backgroundColor = DeskColors.green),
+                colors = ButtonDefaults.buttonColors(backgroundColor = DeskColors.green, contentColor = MaterialTheme.colors.onPrimary),
                 contentPadding = PaddingValues(horizontal = 22.dp, vertical = 12.dp), elevation = ButtonDefaults.elevation(0.dp, 0.dp)) {
-                if (viewModel.busy) CircularProgressIndicator(Modifier.size(19.dp), strokeWidth = 2.dp, color = DeskColors.background)
+                if (viewModel.busy) CircularProgressIndicator(Modifier.size(19.dp), strokeWidth = 2.dp, color = MaterialTheme.colors.onPrimary)
                 else Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(23.dp))
                 Spacer(Modifier.width(8.dp))
                 Text(if (viewModel.busy) "분석 중" else "AI 분석")

@@ -63,7 +63,7 @@ compose.desktop {
 
         nativeDistributions {
             appResourcesRootDir.set(prepareJavafxModules.map { javafxResources.get() })
-            modules('java.logging', 'java.net.http', 'java.xml', 'jdk.crypto.ec',
+            modules('java.logging', 'java.net.http', 'java.xml', 'java.prefs', 'jdk.crypto.ec',
                     'jdk.jsobject', 'jdk.xml.dom', 'jdk.unsupported', 'jdk.unsupported.desktop')
             packageName = 'MarketDataPlatform'
             packageVersion = '0.1.0'
@@ -86,7 +86,16 @@ tasks.register('verifyWorkspace', JavaExec) {
 }
 
 tasks.named('check') {
-    dependsOn 'verifyWorkspace', 'verifyDesktopUi'
+    dependsOn 'verifyWorkspace', 'verifyDesktopUi', 'verifyAppearance'
+}
+
+tasks.register('verifyAppearance', JavaExec) {
+    group = 'verification'
+    description = 'Checks persisted appearance preferences and theme text contrast.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.marketdata.desktop.AppearancePreferencesChecksKt'
+    systemProperty 'java.awt.headless', 'true'
 }
 
 tasks.named('test') {

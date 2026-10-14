@@ -21,6 +21,11 @@ fun main() {
             check(window.background == Color(8, 9, 9))
             check(window.contentPane.background == window.background)
             check(window.rootPane.background == window.background)
+            configureDesktopWindow(window, dark = false)
+            check(window.background == Color(242, 244, 243))
+            check(window.contentPane.background == window.background && window.rootPane.background == window.background)
+            configureDesktopWindow(window, dark = true)
+            check(window.background == Color(8, 9, 9))
             if (isMacOs) {
                 check(window.rootPane.getClientProperty("apple.awt.fullWindowContent") == true)
                 check(window.rootPane.getClientProperty("apple.awt.transparentTitleBar") == true)

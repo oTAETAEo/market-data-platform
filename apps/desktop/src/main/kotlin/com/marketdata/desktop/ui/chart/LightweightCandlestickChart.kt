@@ -67,9 +67,11 @@ internal fun LightweightCandlestickChart(
 
     val panel = renderer ?: remember { LightweightChartPanel() }
     val density = LocalDensity.current.density
+    val dark = !MaterialTheme.colors.isLight
     val frame = panel.frame.takeIf { panel.frameKey == chartKey }
     DisposableEffect(panel) { onDispose(panel::dispose) }
     LaunchedEffect(panel, chartKey, candles) { panel.update(chartKey, candles) }
+    LaunchedEffect(panel, dark) { panel.setDark(dark) }
     Box(Modifier.fillMaxWidth().height(height).background(DeskColors.elevated)
         .onSizeChanged { panel.setViewport(it.width / density.toDouble(), it.height / density.toDouble(), density.toDouble()) }
         .onPointerEvent(PointerEventType.Enter) { event ->
@@ -122,6 +124,7 @@ internal class LightweightChartPanel : JFXPanel() {
     @Volatile private var disposed = false
     @Volatile private var pendingKey = ""
     @Volatile private var pendingData = "[]"
+    private var dark = true
     private var webView: WebView? = null
     private val readyFuture = CompletableFuture<Boolean>()
     private var viewportWidth = 640.0
@@ -157,7 +160,7 @@ internal class LightweightChartPanel : JFXPanel() {
                         view.engine.executeScript("typeof window.marketChartUpdate === 'function'") == true
                     }.getOrDefault(false)
                     readyFuture.complete(ready)
-                    if (ready) pushPending()
+                    if (ready) { applyTheme(); pushPending() }
                 } else if (state == Worker.State.FAILED || state == Worker.State.CANCELLED) {
                     readyFuture.complete(false)
                 }
@@ -192,6 +195,20 @@ internal class LightweightChartPanel : JFXPanel() {
         }
     }
 
+    fun setDark(value: Boolean) {
+        Platform.runLater {
+            if (disposed || dark == value) return@runLater
+            dark = value
+            if (ready) applyTheme()
+        }
+    }
+
+    private fun applyTheme() {
+        webView?.engine?.executeScript("window.marketChartTheme($dark)")
+        scene?.fill = if (dark) javafx.scene.paint.Color.rgb(18, 20, 20) else javafx.scene.paint.Color.WHITE
+        framesRequested = 3
+    }
+
     private fun applyViewport() {
         webView?.apply {
             setMinSize(viewportWidth, viewportHeight)
@@ -212,7 +229,7 @@ internal class LightweightChartPanel : JFXPanel() {
             snapshotBuffer = null
         }
         val parameters = SnapshotParameters().apply {
-            fill = javafx.scene.paint.Color.rgb(18, 20, 20)
+            fill = if (dark) javafx.scene.paint.Color.rgb(18, 20, 20) else javafx.scene.paint.Color.WHITE
             transform = Scale(pixelScale, pixelScale)
         }
         view.snapshot(parameters, snapshotImage)
@@ -321,9 +338,8 @@ internal class LightweightChartPanel : JFXPanel() {
 }
 
 private fun List<ChartCandle>.toChartJson() = joinToString(prefix = "[", postfix = "]") { candle ->
-    val liveColor = if (candle.closed) "" else ",\"color\":\"#9BA49E\",\"borderColor\":\"#9BA49E\",\"wickColor\":\"#9BA49E\""
     "{\"time\":${candle.time},\"open\":${candle.open},\"high\":${candle.high}," +
-        "\"low\":${candle.low},\"close\":${candle.close},\"closed\":${candle.closed}$liveColor}"
+        "\"low\":${candle.low},\"close\":${candle.close},\"closed\":${candle.closed}}"
 }
 
 private fun jsonString(value: String) = buildString {
@@ -372,6 +388,39 @@ private const val CHART_HTML = """
       upColor: '#8ae6ad', downColor: '#f2aa98', borderVisible: false,
       wickUpColor: '#8ae6ad', wickDownColor: '#f2aa98'
     });
+    let themeDark = true;
+    let currentData = [];
+    const themedData = data => data.map(value => {
+      if (value.closed) return value;
+      const color = themeDark ? '#9ba49e' : '#58675f';
+      return { ...value, color, borderColor: color, wickColor: color };
+    });
+    window.marketChartTheme = dark => {
+      themeDark = dark;
+      const background = dark ? '#121414' : '#ffffff';
+      const text = dark ? '#9ba49e' : '#58675f';
+      const grid = dark ? '#202422' : '#e7ece9';
+      const border = dark ? '#2c302e' : '#d5ddd8';
+      const up = dark ? '#8ae6ad' : '#187342';
+      const down = dark ? '#f2aa98' : '#ad4533';
+      document.documentElement.style.background = background;
+      document.body.style.background = background;
+      document.getElementById('chart').style.background = background;
+      document.getElementById('credit').style.color = text;
+      document.getElementById('error').style.color = text;
+      document.querySelector('a').style.color = up;
+      chart.applyOptions({
+        layout: { background: { color: background }, textColor: text },
+        grid: { vertLines: { color: grid }, horzLines: { color: grid } },
+        rightPriceScale: { borderColor: border }, timeScale: { borderColor: border }
+      });
+      series.applyOptions({ upColor: up, downColor: down, wickUpColor: up, wickDownColor: down });
+      if (currentData.length) {
+        const range = chart.timeScale().getVisibleLogicalRange();
+        series.setData(themedData(currentData));
+        if (range) chart.timeScale().setVisibleLogicalRange(range);
+      }
+    };
     let currentKey = '';
     let currentLength = 0;
     window.marketChartDataLength = 0;
@@ -417,6 +466,8 @@ private const val CHART_HTML = """
     };
     window.marketChartUpdate = (key, data) => {
       if (!data.length) return;
+      currentData = data;
+      data = themedData(data);
       if (key !== currentKey || data.length < currentLength || data.length > currentLength + 1) {
         currentKey = key;
         currentLength = data.length;

@@ -44,7 +44,8 @@ import java.awt.Cursor
 internal fun MarketWorkspace(
     viewModel: WorkspaceViewModel,
     titleBar: @Composable () -> Unit = {},
-    showChart: Boolean = true
+    showChart: Boolean = true,
+    onToggleTheme: () -> Unit = {}
 ) {
     val scope = rememberCoroutineScope()
     var addDialog by remember { mutableStateOf(false) }
@@ -83,7 +84,7 @@ internal fun MarketWorkspace(
             }
             Column(Modifier.fillMaxSize()) {
                 titleBar()
-                TopBar(viewModel, layout, marketListVisible, onSettings = { showSettings = true }) {
+                TopBar(viewModel, layout, marketListVisible, onSettings = { showSettings = true }, onToggleTheme = onToggleTheme) {
                     if (marketListVisible) {
                         viewModel.updateQuery("")
                         showMarkets = false

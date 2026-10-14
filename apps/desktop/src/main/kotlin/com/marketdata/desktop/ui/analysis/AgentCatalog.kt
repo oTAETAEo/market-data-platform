@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.runtime.Composable
 import com.marketdata.desktop.model.AgentGroup
 import com.marketdata.desktop.ui.theme.DeskColors
 
@@ -20,7 +21,8 @@ internal data class AgentTile(
     val group: AgentGroup, val color: Color, val icon: ImageVector
 )
 
-internal val agentTiles = listOf(
+internal val agentTiles: List<AgentTile>
+    @Composable get() = listOf(
     AgentTile("Technical Analyst", "기술적 분석", "Technical analyst", "추세 · 모멘텀 · 주요 가격대", AgentGroup.ANALYST, DeskColors.blue, Icons.AutoMirrored.Filled.List),
     AgentTile("Sentiment Analyst", "시장 심리", "Sentiment analyst", "투자 심리 · 소셜 센티먼트", AgentGroup.ANALYST, DeskColors.coral, Icons.Default.FavoriteBorder),
     AgentTile("News Analyst", "뉴스 분석", "News analyst", "주요 이슈 · 시장 촉매", AgentGroup.ANALYST, DeskColors.gold, Icons.Default.DateRange),

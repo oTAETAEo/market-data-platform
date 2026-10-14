@@ -9,6 +9,8 @@ import androidx.compose.ui.ImageComposeScene
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
@@ -23,6 +25,7 @@ import com.marketdata.desktop.ui.chart.LightweightChartPanel
 import com.marketdata.desktop.ui.components.DropdownControl
 import com.marketdata.desktop.ui.theme.DeskColors
 import com.marketdata.desktop.ui.theme.MarketTheme
+import com.marketdata.desktop.ui.theme.deskPalette
 import javafx.application.Platform
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
@@ -39,12 +42,13 @@ fun main(args: Array<String>) = runBlocking {
             SwingUtilities.invokeAndWait { chart = LightweightChartPanel() }
             check(chart.awaitReady(30))
             val selected = mutableStateOf("15m")
+            val dark = mutableStateOf(true)
             val candles = mutableStateOf(List(40) { index ->
                 ChartCandle(1_700_000_000 + index * 60L, 100.0, 120.0, 99.0, 102.0 + index * 0.1, false)
             })
             var anchor = Rect.Zero
             val scene = ImageComposeScene(width, height, Density(1f), coroutineContext) {
-                MarketTheme {
+                MarketTheme(dark.value) {
                     Column(Modifier.fillMaxSize().background(DeskColors.panel).padding(24.dp)) {
                         Box(Modifier.onGloballyPositioned { anchor = it.boundsInWindow() }) {
                             DropdownControl(selected.value, listOf("1m", "5m", "15m", "1h", "4h"), "타임프레임") {
@@ -122,7 +126,32 @@ fun main(args: Array<String>) = runBlocking {
                 check((render().getRGB(anchor.left.toInt() + 3, anchor.bottom.toInt() + 16) and 0xFFFFFF) == 0x121414) {
                     "Outside click did not dismiss the menu"
                 }
-                println("Dropdown $width passed: opening frames, short clicks, keyboard selection, Escape, outside dismissal and live chart updates")
+                openAndCheck()
+                val span = chart.visibleRangeSpan(5)
+                val position = chart.scrollPosition(5)
+                dark.value = false
+                val deadline = System.nanoTime() + 5_000_000_000L
+                while (true) {
+                    settle()
+                    val frame = chart.captureFrame()!!
+                    if (frame.toPixelMap()[frame.width - 2, frame.height - 2].toArgb() == -1) break
+                    check(System.nanoTime() < deadline) { "Chart pixels did not switch to light mode" }
+                }
+                val light = render()
+                check(light.getRGB(anchor.left.toInt() + 3, anchor.bottom.toInt() + 16) == deskPalette(false).elevated.toArgb()) {
+                    "Open dropdown did not adopt the light theme"
+                }
+                check(selected.value == "5m" && chart.lastCandleClose(5) == 111.0)
+                check(kotlin.math.abs(chart.visibleRangeSpan(5) - span) < 0.001 && kotlin.math.abs(chart.scrollPosition(5) - position) < 0.001) {
+                    "Chart theme switching reset zoom or scroll"
+                }
+                ImageIO.write(light, "png", File(output, "light-dropdown-$width.png"))
+                click(anchor.left + 32, anchor.bottom + 30)
+                settle()
+                check(selected.value == "1m") { "Light dropdown was not clickable" }
+                dark.value = true
+                settle()
+                println("Dropdown $width passed: opening frames, short clicks, keyboard selection, dismissal, live updates and theme switching without range resets")
             } finally {
                 scene.close()
                 chart.dispose()
