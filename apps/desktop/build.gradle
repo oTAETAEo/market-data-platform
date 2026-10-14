@@ -86,7 +86,17 @@ tasks.register('verifyWorkspace', JavaExec) {
 }
 
 tasks.named('check') {
-    dependsOn 'verifyWorkspace', 'verifyDesktopUi', 'verifyAppearance'
+    dependsOn 'verifyWorkspace', 'verifyDesktopUi', 'verifyAppearance', 'verifyMarketSearch'
+}
+
+tasks.register('verifyMarketSearch', JavaExec) {
+    group = 'verification'
+    description = 'Checks market search autocomplete focus, selection, dismissal and both themes.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.marketdata.desktop.MarketSearchChecksKt'
+    systemProperty 'java.awt.headless', 'true'
+    args layout.buildDirectory.dir('reports/market-search').get().asFile.absolutePath
 }
 
 tasks.register('verifyAppearance', JavaExec) {

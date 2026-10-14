@@ -267,24 +267,22 @@ fun main(args: Array<String>) = runBlocking {
             check(
                 state.visibleAssets.single().ticker == "SOL"
             )
-            if (narrow) {
-                capture("markets-$width")
-            }
-            click(
-                110f,
-                274f
-            )
+            capture("search-dropdown-$width")
+            check(state.page == WorkspacePage.ANALYSIS)
+            click(width - 80f, 64f)
+            check(!dark.value && state.query == "sol")
+            click(width / 2f, 64f)
+            capture("light-search-dropdown-$width")
+            scene.sendKeyEvent(KeyEvent(Key.Enter, KeyEventType.KeyDown))
+            scene.sendKeyEvent(KeyEvent(Key.Enter, KeyEventType.KeyUp))
+            settle()
             check(
                 state.selection.asset.ticker == "SOL" &&
                         state.activeRun == null
             )
-            if (narrow) {
-                check(
-                    state.query.isEmpty()
-                ) {
-                    "Narrow market selection should return to analysis"
-                }
-            }
+            check(state.query.isEmpty()) { "Search selection should clear the query" }
+            click(width - 80f, 64f)
+            check(dark.value)
             capture("search-$width")
             if (narrow) {
                 click(

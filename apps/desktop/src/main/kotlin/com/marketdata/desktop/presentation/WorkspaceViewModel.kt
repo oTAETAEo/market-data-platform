@@ -67,6 +67,10 @@ internal class WorkspaceViewModel(
     val visibleAssets: List<MarketAsset> get() = watchedAssets.filter {
         (!favoritesOnly || it.ticker in favoriteTickers) && MarketCatalog.matches(it, query)
     }
+    val searchResults: List<MarketAsset> get() = if (query.isBlank()) emptyList() else
+        (watchedAssets + MarketCatalog.assets).distinctBy { it.ticker }
+            .filter { MarketCatalog.matches(it, query) }
+            .sortedBy { if (it.ticker == MarketCatalog.fromInput(query)?.ticker) 0 else 1 }
     val aiConfigured: Boolean get() = AiSettings(aiProvider, quickModel, deepModel, apiKey).configured()
     val canAnalyze: Boolean get() = !busy && marketStatus.analysisReady() && aiConfigured
 

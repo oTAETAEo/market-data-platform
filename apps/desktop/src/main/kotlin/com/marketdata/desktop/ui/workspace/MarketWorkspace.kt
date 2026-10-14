@@ -74,7 +74,7 @@ internal fun MarketWorkspace(
                 .coerceIn(272f, maxDetailWidth)
             val detailSize = detailSizeValue.dp
             val compact = !layout.hasDetailPanel || maxHeight < 800.dp
-            val marketListVisible = !layout.hasSidebar && (showMarkets || viewModel.query.isNotBlank())
+            val marketListVisible = !layout.hasSidebar && showMarkets
             val selectAsset: (MarketAsset) -> Unit = { asset ->
                 viewModel.select(asset = asset)
                 if (!layout.hasSidebar) {
@@ -84,7 +84,8 @@ internal fun MarketWorkspace(
             }
             Column(Modifier.fillMaxSize()) {
                 titleBar()
-                TopBar(viewModel, layout, marketListVisible, onSettings = { showSettings = true }, onToggleTheme = onToggleTheme) {
+                TopBar(viewModel, layout, marketListVisible, onSettings = { showSettings = true },
+                    onToggleTheme = onToggleTheme, onSearchSelect = { viewModel.addAsset(it); showMarkets = false }) {
                     if (marketListVisible) {
                         viewModel.updateQuery("")
                         showMarkets = false

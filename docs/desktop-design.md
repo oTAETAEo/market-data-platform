@@ -13,13 +13,23 @@
 
 - 폭 1280 이상: 관심 종목, 분석, 브리핑의 3단 구성.
 - 폭 800~1279: 관심 종목과 분석의 2단 구성. 개별 리포트는 중앙에 표시.
-- 폭 800 미만: 단일 화면. 메뉴나 검색으로 관심 종목 목록을 열고 종목을 선택하면 분석 화면으로 복귀.
+- 폭 800 미만: 단일 화면. 메뉴로 관심 종목 목록을 열고 종목을 선택하면 분석 화면으로 복귀. 검색 결과는 현재 분석 화면 위에 드롭다운으로 표시.
 
 사이드바는 창 폭의 17%(192~240), 브리핑은 22%(272~336) 범위에서 유연하게 조절됩니다. 패널 접기와 펼치기는 180ms 전환을 사용하며, 실제 창 크기 변화는 지연 없이 반영합니다. 선택한 종목·리포트와 스크롤 상태는 레이아웃 전환 시 유지합니다. 필터는 공간이 부족하면 다음 줄로 배치합니다.
 
 넓은 화면에서는 중앙과 오른쪽 리포트 사이 경계선을 좌우로 드래그해 리포트 폭을 조절할 수 있습니다. 최소 리포트 폭은 272dp이며 중앙 분석 영역은 최소 480dp를 유지합니다. 중간·좁은 화면에서는 리포트가 중앙 전체 폭을 사용합니다.
 
 에이전트는 가용 폭에 따라 1~4열로 배치합니다. 단일 열에서는 가로형 항목을 사용합니다. 작은 창과 높이가 낮은 창에서는 종목 헤더를 압축하고 중복된 요약 지표를 생략합니다.
+
+## 종목 검색
+
+상단 검색창은 등록된 종목 카탈로그와 관심 목록을 대상으로 티커, `BTC/USDT` 같은 심볼, 종목 이름을 검색합니다. 즐겨찾기 필터와 무관하게 검색하며, 관심 목록에 없는 카탈로그 종목도 선택할 수 있습니다. 거래소의 전체 상장 종목을 실시간 조회하는 검색은 아닙니다.
+
+검색 결과는 검색창 너비에 맞춘 Compose 팝업으로 표시합니다. 입력 포커스를 유지하므로 목록이 열린 상태에서도 계속 입력할 수 있습니다. 방향키와 Enter, 마우스 클릭으로 선택하며 Esc 또는 바깥 클릭으로 닫습니다. 선택하면 관심 목록에 추가하고 기존 수집 경로로 종목을 변경하며 검색어를 비웁니다. 검색어를 입력하는 것만으로 수집 종목을 변경하지 않습니다.
+
+목록에 없는 유효한 USDT 티커는 `직접 입력 · 상장 미확인`으로 구분합니다. 이 항목은 거래소 상장 여부를 확인한 검색 결과가 아닙니다. 잘못된 입력은 빈 결과 상태로 표시하며 선택할 수 없습니다.
+
+라이트 모드에서는 흰 검색창과 대비가 있는 외곽선을 사용하고, 두 테마 모두 입력 포커스가 있으면 초록색 외곽선을 표시합니다. 팝업이 분석 화면이나 차트에 가려지지 않도록 동일한 Compose 화면에 렌더링합니다.
 
 ## 차트 렌더링
 
@@ -29,7 +39,7 @@ Lightweight Charts는 JavaFX WebView에서 그립니다. 화면에는 완성된 
 
 ## 창 프레임
 
-왼쪽 상단 로고와 브랜드 문구, 네이티브 창 제목은 표시하지 않습니다. macOS에서는 `apple.awt.fullWindowContent`, `apple.awt.transparentTitleBar`, `apple.awt.windowTitleVisible` 설정으로 콘텐츠를 제목 표시줄까지 확장합니다. 창·콘텐츠·루트 패널 배경은 모두 `#080909`입니다. 기본 창 버튼과 크기 조절을 유지하며 상단 32dp는 창 이동 영역입니다.
+왼쪽 상단 로고와 브랜드 문구, 네이티브 창 제목은 표시하지 않습니다. macOS에서는 `apple.awt.fullWindowContent`, `apple.awt.transparentTitleBar`, `apple.awt.windowTitleVisible` 설정으로 콘텐츠를 제목 표시줄까지 확장합니다. 창·콘텐츠·루트 패널 배경은 선택한 테마를 따르며 다크 모드는 `#080909`, 라이트 모드는 `#F2F4F3`입니다. 기본 창 버튼과 크기 조절을 유지하며 상단 32dp는 창 이동 영역입니다.
 
 이 설정은 [OpenJDK 21의 macOS 창 구현](https://github.com/openjdk/jdk21u/blob/master/src/java.desktop/macosx/classes/sun/lwawt/macosx/CPlatformWindow.java)과 [Compose 창 이동 영역 API](https://kotlinlang.org/docs/multiplatform/compose-desktop-top-level-windows-management.html#make-window-areas-draggable)를 사용합니다. 다른 운영체제의 창 장식은 해당 운영체제 설정을 따릅니다.
 
@@ -67,12 +77,15 @@ Lightweight Charts는 JavaFX WebView에서 그립니다. 화면에는 완성된 
 ./gradlew :apps:desktop:run
 ./gradlew :apps:desktop:verifyWorkspace
 ./gradlew :apps:desktop:verifyDesktopUi
+./gradlew :apps:desktop:verifyMarketSearch
 ./gradlew :apps:desktop:verifyDesktopWindow
 ./gradlew :apps:desktop:check
 ./gradlew :apps:desktop:createDistributable
 ```
 
 `verifyDesktopUi`는 폭 420~1920의 8가지 창 크기에서 렌더링과 입력 동작을 검사합니다. 같은 Compose 장면의 크기를 연속으로 바꾸면서 패널 전환과 선택된 리포트의 유지도 검증합니다. 결과 이미지는 `apps/desktop/build/reports/desktop-ui`에 생성됩니다.
+
+`verifyMarketSearch`는 폭 420·1440의 두 테마에서 입력 포커스, 검색 결과 선택, 직접 입력 티커, 빈 결과, 닫기·재열기 및 키보드 목록 스크롤을 검사합니다. 결과 이미지는 `apps/desktop/build/reports/market-search`에 생성됩니다. `verifyAppearance`는 검색창 외곽선과 페이지 배경의 대비도 검사합니다.
 
 `verifyDesktopWindow`는 화면에 표시하지 않은 실제 ComposeWindow의 네이티브 피어를 생성해 제목, 배경색, 최소 크기, 기본 창 장식과 macOS 프레임 속성을 확인합니다. OS 화면 녹화 권한은 사용하지 않으며, 실제 창 장식의 스크린샷 검사는 포함하지 않습니다.
 

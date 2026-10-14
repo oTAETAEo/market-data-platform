@@ -20,7 +20,8 @@ import androidx.compose.ui.unit.dp
 import com.marketdata.desktop.model.WorkspacePage
 import com.marketdata.desktop.presentation.WorkspaceViewModel
 import com.marketdata.desktop.ui.components.CoinMark
-import com.marketdata.desktop.ui.components.SearchField
+import com.marketdata.desktop.ui.watchlist.MarketSearch
+import com.marketdata.desktop.model.MarketAsset
 import com.marketdata.desktop.ui.components.StatusDot
 import com.marketdata.desktop.ui.components.StatusTag
 import com.marketdata.desktop.ui.components.ToolButton
@@ -29,7 +30,8 @@ import com.marketdata.desktop.ui.theme.DeskColors
 
 @Composable
 internal fun TopBar(viewModel: WorkspaceViewModel, layout: WorkspaceLayout, marketListVisible: Boolean,
-                    onSettings: () -> Unit, onToggleTheme: () -> Unit, onToggleMarkets: () -> Unit) {
+                    onSettings: () -> Unit, onToggleTheme: () -> Unit, onSearchSelect: (MarketAsset) -> Unit,
+                    onToggleMarkets: () -> Unit) {
     Row(Modifier.fillMaxWidth().height(64.dp).padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
         if (!layout.hasSidebar) {
             ToolButton(if (marketListVisible) Icons.Default.Close else Icons.Default.Menu,
@@ -37,7 +39,7 @@ internal fun TopBar(viewModel: WorkspaceViewModel, layout: WorkspaceLayout, mark
             Spacer(Modifier.width(12.dp))
         }
         Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-            SearchField(viewModel.query, { viewModel.updateQuery(it) }, "종목 검색", Modifier.widthIn(max = 560.dp).fillMaxWidth())
+            MarketSearch(viewModel, onSearchSelect)
         }
         Spacer(Modifier.width(16.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
