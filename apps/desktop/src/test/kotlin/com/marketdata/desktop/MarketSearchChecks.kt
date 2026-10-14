@@ -8,6 +8,7 @@ import androidx.compose.ui.ImageComposeScene
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
@@ -19,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import com.marketdata.desktop.application.DesktopCompositionRoot
 import com.marketdata.desktop.ui.theme.DeskColors
 import com.marketdata.desktop.ui.theme.MarketTheme
+import com.marketdata.desktop.ui.theme.deskPalette
 import com.marketdata.desktop.ui.watchlist.MarketSearch
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
@@ -31,12 +33,13 @@ fun main(args: Array<String>) = runBlocking {
     val output = File(args.single()).apply { mkdirs() }
     for (width in listOf(1440, 420)) for (dark in listOf(true, false)) {
         val state = DesktopCompositionRoot.createWorkspace()
+        val originalWatchlist = state.watchlist
         var anchor = Rect.Zero
         val scene = ImageComposeScene(width, 560, Density(1f), coroutineContext) {
             MarketTheme(dark) {
                 Column(Modifier.fillMaxSize().background(DeskColors.background).padding(24.dp)) {
                     Box(Modifier.onGloballyPositioned { anchor = it.boundsInWindow() }) {
-                        MarketSearch(state) { state.addAsset(it) }
+                        MarketSearch(state) { state.selectSearchResult(it) }
                     }
                 }
             }
@@ -74,12 +77,22 @@ fun main(args: Array<String>) = runBlocking {
             fun menuPixel() = render().use { frame -> frame.encodeToData()!!.use { data ->
                 ImageIO.read(data.bytes.inputStream()).getRGB(anchor.left.toInt() + 3, anchor.bottom.toInt() + 18)
             } }
+            fun checkBorderless() = render().use { frame -> frame.encodeToData()!!.use { data ->
+                val palette = deskPalette(dark)
+                val background = if (dark) palette.elevated else palette.panel
+                check(ImageIO.read(data.bytes.inputStream()).getRGB(anchor.center.x.toInt(), anchor.top.toInt()) == background.toArgb()) {
+                    "Search field still has an outline"
+                }
+            } }
             settle()
+            checkBorderless()
             capture("search-idle")
             val closedPixel = menuPixel()
             click(anchor.left + 70, anchor.center.y)
             type("sol")
+            checkBorderless()
             check(state.searchResults.single().ticker == "SOL")
+            check(state.visibleAssets == originalWatchlist)
             check(menuPixel() != closedPixel) { "Suggestions were not rendered below the field" }
             capture("search-results")
             key(Key.Enter)
@@ -88,13 +101,14 @@ fun main(args: Array<String>) = runBlocking {
             type("avax")
             click(anchor.left + 80, anchor.bottom + 43)
             check(state.selection.asset.ticker == "AVAX" && state.query.isEmpty()) { "Short result click did not select" }
-            check(state.watchlist.count { it.ticker == "AVAX" } == 1)
+            check(state.watchlist == originalWatchlist)
             click(anchor.left + 70, anchor.center.y)
             type("ada/usdt")
             check(state.searchResults.isEmpty())
             capture("search-custom")
             key(Key.Enter)
             check(state.selection.asset.symbol == "ADAUSDT" && state.query.isEmpty())
+            check(state.watchlist == originalWatchlist)
             type("$")
             val selection = state.selection
             capture("search-empty")
@@ -104,6 +118,7 @@ fun main(args: Array<String>) = runBlocking {
             check(state.query.isEmpty()) { "Clear button did not reset search" }
             type("btc")
             key(Key.Escape)
+            check(state.watchlist == originalWatchlist && state.visibleAssets == originalWatchlist)
             check(menuPixel() == closedPixel)
             state.updateQuery("btc")
             settle()

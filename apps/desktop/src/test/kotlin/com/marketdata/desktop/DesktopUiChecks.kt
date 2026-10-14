@@ -265,7 +265,7 @@ fun main(args: Array<String>) = runBlocking {
                 "Search field did not receive text"
             }
             check(
-                state.visibleAssets.single().ticker == "SOL"
+                state.searchResults.single().ticker == "SOL" && state.visibleAssets == state.watchlist
             )
             capture("search-dropdown-$width")
             check(state.page == WorkspacePage.ANALYSIS)

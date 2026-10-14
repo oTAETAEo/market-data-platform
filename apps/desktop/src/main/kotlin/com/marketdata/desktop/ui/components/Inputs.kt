@@ -4,7 +4,6 @@ package com.marketdata.desktop.ui.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
@@ -56,7 +55,6 @@ import com.marketdata.desktop.ui.theme.DeskColors
 internal fun SearchField(value: String, onChange: (String) -> Unit, placeholder: String,
                          modifier: Modifier = Modifier, inputModifier: Modifier = Modifier,
                          onFocusChange: (Boolean) -> Unit = {}) {
-    var focused by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
     var restoreFocus by remember { mutableStateOf(false) }
     LaunchedEffect(restoreFocus) {
@@ -68,14 +66,13 @@ internal fun SearchField(value: String, onChange: (String) -> Unit, placeholder:
     val shape = RoundedCornerShape(8.dp)
     Row(modifier.height(40.dp)
         .background(if (MaterialTheme.colors.isLight) DeskColors.panel else DeskColors.elevated, shape)
-        .border(1.dp, if (focused) DeskColors.green else DeskColors.inputLine, shape)
         .padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
         Icon(Icons.Default.Search, null, tint = DeskColors.muted, modifier = Modifier.size(19.dp))
         Spacer(Modifier.width(10.dp))
         BasicTextField(
             value, onChange, singleLine = true,
             modifier = Modifier.weight(1f).fillMaxHeight().focusRequester(focusRequester).then(inputModifier)
-                .onFocusChanged { focused = it.isFocused; onFocusChange(it.isFocused) }
+                .onFocusChanged { onFocusChange(it.isFocused) }
                 .semantics { contentDescription = placeholder },
             textStyle = MaterialTheme.typography.body2.copy(color = DeskColors.text),
             cursorBrush = SolidColor(DeskColors.green),

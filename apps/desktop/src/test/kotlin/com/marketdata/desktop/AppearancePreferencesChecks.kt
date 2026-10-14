@@ -17,10 +17,6 @@ fun main() {
         check(AppearancePreferences(node).isDark())
         for (dark in listOf(true, false)) {
             val palette = deskPalette(dark)
-            val borderLuminances = listOf(palette.inputLine.luminance(), palette.background.luminance())
-            check((borderLuminances.max() + 0.05) / (borderLuminances.min() + 0.05) >= 3.0) {
-                "Search boundary is not distinguishable from the page background"
-            }
             for (foreground in listOf(palette.text, palette.muted, palette.green, palette.blue, palette.coral, palette.gold)) {
                 for (background in listOf(palette.panel, palette.elevated)) {
                     val luminances = listOf(foreground.luminance(), background.luminance())

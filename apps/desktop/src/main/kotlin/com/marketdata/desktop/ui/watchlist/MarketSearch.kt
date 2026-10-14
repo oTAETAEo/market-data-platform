@@ -2,7 +2,6 @@
 
 package com.marketdata.desktop.ui.watchlist
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.hoverable
@@ -81,7 +80,7 @@ internal fun MarketSearch(viewModel: WorkspaceViewModel, onSelect: (MarketAsset)
             // Keep typing focus in the search field while suggestions are visible.
             properties = PopupProperties(focusable = false)) {
             Surface(Modifier.width(fieldWidth).semantics { contentDescription = "종목 검색 결과" },
-                color = DeskColors.panel, border = BorderStroke(1.dp, DeskColors.inputLine), shape = RoundedCornerShape(8.dp)) {
+                color = DeskColors.panel, elevation = 6.dp, shape = RoundedCornerShape(8.dp)) {
                 val scroll = rememberScrollState()
                 var menuHeight by remember { mutableStateOf(0) }
                 LaunchedEffect(activeIndex, menuHeight) {

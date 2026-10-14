@@ -85,7 +85,7 @@ internal fun MarketWorkspace(
             Column(Modifier.fillMaxSize()) {
                 titleBar()
                 TopBar(viewModel, layout, marketListVisible, onSettings = { showSettings = true },
-                    onToggleTheme = onToggleTheme, onSearchSelect = { viewModel.addAsset(it); showMarkets = false }) {
+                    onToggleTheme = onToggleTheme, onSearchSelect = { viewModel.selectSearchResult(it); showMarkets = false }) {
                     if (marketListVisible) {
                         viewModel.updateQuery("")
                         showMarkets = false

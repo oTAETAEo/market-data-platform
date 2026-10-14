@@ -65,7 +65,7 @@ internal class WorkspaceViewModel(
     val favorites: List<String> get() = favoriteTickers.toList()
     val history: List<AnalysisRun> get() = analysisHistory.toList()
     val visibleAssets: List<MarketAsset> get() = watchedAssets.filter {
-        (!favoritesOnly || it.ticker in favoriteTickers) && MarketCatalog.matches(it, query)
+        !favoritesOnly || it.ticker in favoriteTickers
     }
     val searchResults: List<MarketAsset> get() = if (query.isBlank()) emptyList() else
         (watchedAssets + MarketCatalog.assets).distinctBy { it.ticker }
@@ -80,6 +80,10 @@ internal class WorkspaceViewModel(
     }
 
     fun updateQuery(value: String) { query = value }
+    fun selectSearchResult(asset: MarketAsset) {
+        select(asset = asset)
+        query = ""
+    }
     fun showPage(value: WorkspacePage) { page = value }
     fun filterByGroup(value: AgentGroup) { group = value }
     fun showAgent(value: String?) { selectedAgent = value }

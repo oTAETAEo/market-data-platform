@@ -22,7 +22,6 @@ internal data class DeskPalette(
     val elevated: Color = Color(0xFF1C1F1E),
     val hover: Color = Color(0xFF252A27),
     val line: Color = Color(0xFF2C302E),
-    val inputLine: Color = Color(0xFF607269),
     val text: Color = Color(0xFFF0F3F1),
     val muted: Color = Color(0xFF9BA49E),
     val green: Color = Color(0xFF8AE6AD),
@@ -34,7 +33,7 @@ internal data class DeskPalette(
 private val darkPalette = DeskPalette()
 private val lightPalette = DeskPalette(
     background = Color(0xFFF2F4F3), panel = Color.White, elevated = Color(0xFFF5F7F6),
-    hover = Color(0xFFE7ECE9), line = Color(0xFFD5DDD8), inputLine = Color(0xFF7B8B82), text = Color(0xFF19231E),
+    hover = Color(0xFFE7ECE9), line = Color(0xFFD5DDD8), text = Color(0xFF19231E),
     muted = Color(0xFF58675F), green = Color(0xFF187342), blue = Color(0xFF305EAD),
     coral = Color(0xFFAD4533), gold = Color(0xFF806319)
 )
