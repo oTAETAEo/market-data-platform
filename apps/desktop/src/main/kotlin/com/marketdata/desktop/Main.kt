@@ -19,10 +19,6 @@ import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 
 fun main() {
-    // Allow Compose menus and clipping to render over the embedded JavaFX chart.
-    System.setProperty("compose.interop.blending", "true")
-    // Give popups their own input and focus surface above the JavaFX WebView.
-    System.setProperty("compose.layers.type", "WINDOW")
     if (isMacOs) System.setProperty("apple.awt.application.appearance", "NSAppearanceNameDarkAqua")
     application {
         val desktop = remember { DesktopCompositionRoot.createApplication() }
@@ -42,7 +38,7 @@ fun main() {
                 onDispose { }
             }
             MarketTheme {
-                MarketWorkspace(desktop.viewModel, popupOwner = window.contentPane, titleBar = {
+                MarketWorkspace(desktop.viewModel, titleBar = {
                     if (isMacOs) WindowDraggableArea {
                         Spacer(Modifier.fillMaxWidth().height(32.dp))
                     }

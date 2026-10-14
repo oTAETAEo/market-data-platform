@@ -134,11 +134,12 @@ tasks.register('verifyChartRuntime', JavaExec) {
 
 tasks.register('verifyChartPopup', JavaExec) {
     group = 'verification'
-    description = 'Checks native dropdown initial position, stable bounds, selection and JavaFX chart visibility.'
+    description = 'Checks dropdown opening frames, short clicks, dismissal and chart visibility.'
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath
     mainClass = 'com.marketdata.desktop.ChartPopupSmokeKt'
     systemProperty 'java.awt.headless', 'false'
+    args layout.buildDirectory.dir('reports/chart-popup').get().asFile.absolutePath
 }
 
 tasks.register('verifyChartRecomposition', JavaExec) {
