@@ -2,7 +2,7 @@
 
 암호화폐 시장 데이터를 로컬에서 수집하고, AI 분석에 사용할 수 있는 형태로 준비합니다.
 
-Market Data Platform은 Binance, Bybit 같은 거래소의 공개 암호화폐 선물 시장 데이터를 수집하고, 거래소별 메시지를 공통 시장 이벤트로 정규화하기 위한 오픈소스 Java 프로젝트입니다.
+Market Data Platform은 Binance, Bybit 같은 거래소의 공개 암호화폐 선물 시장 데이터를 수집하고, 거래소별 메시지를 공통 시장 이벤트로 정규화하기 위한 Java 기반 프로젝트입니다.
 
 현재는 Binance USD-M Futures와 Bybit Linear의 candle 데이터 수집에 집중하고 있습니다. 장기적으로는 사용자가 관심 있는 심볼의 시장 데이터를 로컬에서 수집하고, 정규화된 스트림을 확인하며, 원할 때만 AI 분석을 요청할 수 있는 로컬 우선 데스크톱 앱을 목표로 합니다.
 
@@ -226,3 +226,15 @@ modules/ai-adapter        # TradingAgents와 LLM provider 연동
 | [Collector MVP 1.0.0](docs/collector/collector-mvp-1.0.0.md) | Collector 범위, 이벤트 계약, 완료 기준 |
 | [데스크톱 화면](docs/desktop-design.md) | 화면 구성, 반응형 동작, 창 프레임과 검증 방법 |
 | [데스크톱-백엔드 연결](docs/desktop-backend-integration.md) | 패키지별 책임, Java 모듈 호출 경계, 수집기·저장소·TradingAgents 연결 방향 |
+| [오픈소스 고지 / Third-Party Notices](THIRD_PARTY_NOTICES.md) | 주요 외부 라이선스, 런타임 소스 및 Python 배포 문서의 한국어·영어 인덱스 |
+
+
+## 라이선스 / Licensing
+
+프로젝트 자체 코드의 공개 라이선스는 아직 선택되지 않았습니다. 외부 구성요소는 각자의 라이선스를 따릅니다. [한국어 고지](docs/legal/third-party-notices.ko.md)와 [English notices](docs/legal/third-party-notices.en.md)를 확인해 주세요.
+
+The first-party project license has not yet been selected. External components retain their respective licenses. See the bilingual [notice index](THIRD_PARTY_NOTICES.md).
+
+이 문서는 배포 준수 완료 증명이나 런타임 소스 제공 제안서가 아닙니다. 현재 설치 파일에 고지를 포함하는 작업, 대응 소스 제공 및 Python 배포 의존성 확정은 아직 완료하지 않았습니다.
+
+These documents are not a compliance certificate or a written runtime source offer. Installer notice inclusion, corresponding-source provision and Python distribution dependency finalization remain pending.
