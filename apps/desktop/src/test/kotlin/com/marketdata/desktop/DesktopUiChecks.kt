@@ -152,7 +152,7 @@ fun main(args: Array<String>) = runBlocking {
                     check(
                         image.getRGB(x, 16) == chromeColor
                     ) {
-                        "Title strip color mismatch"
+                        "Title strip color mismatch in $name at x=$x: actual=${image.getRGB(x, 16).toUInt().toString(16)}, expected=${chromeColor.toUInt().toString(16)}"
                     }
                 }
                 return file

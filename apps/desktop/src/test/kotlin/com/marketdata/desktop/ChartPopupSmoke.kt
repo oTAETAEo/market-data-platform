@@ -134,7 +134,9 @@ fun main(args: Array<String>) = runBlocking {
                 while (true) {
                     settle()
                     val frame = chart.captureFrame()!!
-                    if (frame.toPixelMap()[frame.width - 2, frame.height - 2].toArgb() == -1) break
+                    val menuColor = render().getRGB(anchor.left.toInt() + 3, anchor.bottom.toInt() + 16)
+                    if (frame.toPixelMap()[frame.width - 2, frame.height - 2].toArgb() == -1 &&
+                        menuColor == deskPalette(false).elevated.toArgb()) break
                     check(System.nanoTime() < deadline) { "Chart pixels did not switch to light mode" }
                 }
                 val light = render()

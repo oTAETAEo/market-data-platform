@@ -95,7 +95,13 @@ internal fun AssetPicker(viewModel: WorkspaceViewModel, onDismiss: () -> Unit) {
                 }
                 Text("${viewModel.selection.exchange} USDT 무기한 선물 종목을 입력하세요.",
                     color = DeskColors.muted, style = MaterialTheme.typography.body2)
-                SearchField(query, { query = it }, "예: ADA, ADAUSDT, ADA/USDT", Modifier.fillMaxWidth())
+                SearchField(
+                    query,
+                    { query = it },
+                    "예: ADA, ADAUSDT, ADA/USDT",
+                    Modifier.fillMaxWidth(),
+                    containerColor = DeskColors.elevated
+                )
                 val candidates = (MarketCatalog.assets + viewModel.watchlist).distinctBy { it.ticker }
                 val matches = candidates.filter { query.isBlank() || MarketCatalog.matches(it, query) }
                 val custom = MarketCatalog.fromInput(query)

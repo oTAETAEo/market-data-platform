@@ -9,6 +9,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -45,21 +48,26 @@ internal val DeskColors: DeskPalette
 @Composable
 internal fun MarketTheme(dark: Boolean = true, content: @Composable () -> Unit) {
     val base = TextStyle(fontFamily = FontFamily.SansSerif, letterSpacing = 0.sp)
-    val palette = deskPalette(dark)
-    CompositionLocalProvider(LocalDeskPalette provides palette) {
+    val transition = remember { ThemeTransition(dark) }
+    // A chart-free screen has no offscreen frame to synchronize, so do not delay its palette.
+    SideEffect { if (transition.renderers.isEmpty()) transition.applyImmediately(dark) }
+    LaunchedEffect(dark, transition.renderers.toList()) { transition.apply(dark) }
+    val appliedDark = transition.dark
+    val palette = deskPalette(appliedDark)
+    CompositionLocalProvider(LocalDeskPalette provides palette, LocalThemeTransition provides transition) {
         MaterialTheme(
-            colors = (if (dark) darkColors() else lightColors()).copy(
+            colors = (if (appliedDark) darkColors() else lightColors()).copy(
                 primary = palette.green,
                 primaryVariant = palette.green,
                 secondary = palette.blue,
                 background = palette.background,
                 surface = palette.panel,
-                onPrimary = if (dark) palette.background else Color.White,
-                onSecondary = if (dark) palette.background else Color.White,
+                onPrimary = if (appliedDark) palette.background else Color.White,
+                onSecondary = if (appliedDark) palette.background else Color.White,
                 onBackground = palette.text,
                 onSurface = palette.text,
                 error = palette.coral,
-                onError = if (dark) palette.background else Color.White
+                onError = if (appliedDark) palette.background else Color.White
             ),
             typography = Typography(
                 defaultFontFamily = FontFamily.SansSerif,

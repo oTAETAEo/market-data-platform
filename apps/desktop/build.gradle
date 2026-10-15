@@ -86,7 +86,25 @@ tasks.register('verifyWorkspace', JavaExec) {
 }
 
 tasks.named('check') {
-    dependsOn 'verifyWorkspace', 'verifyDesktopUi', 'verifyAppearance', 'verifyMarketSearch', 'verifyInstrumentCatalog'
+    dependsOn 'verifyWorkspace', 'verifyDesktopUi', 'verifyAppearance', 'verifyMarketSearch', 'verifyInstrumentCatalog', 'verifyThemeTransition', 'verifyAssetPicker'
+}
+
+tasks.register('verifyAssetPicker', JavaExec) {
+    group = 'verification'
+    description = 'Checks that the add-market search field remains distinct from its dialog in both themes.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.marketdata.desktop.AssetPickerChecksKt'
+    systemProperty 'java.awt.headless', 'true'
+}
+
+tasks.register('verifyThemeTransition', JavaExec) {
+    group = 'verification'
+    description = 'Checks deferred theme commits, superseded requests and renderer failure fallbacks.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.marketdata.desktop.ThemeTransitionChecksKt'
+    systemProperty 'java.awt.headless', 'true'
 }
 
 tasks.register('verifyInstrumentCatalog', JavaExec) {
@@ -176,6 +194,16 @@ tasks.register('verifyChartPopup', JavaExec) {
     mainClass = 'com.marketdata.desktop.ChartPopupSmokeKt'
     systemProperty 'java.awt.headless', 'false'
     args layout.buildDirectory.dir('reports/chart-popup').get().asFile.absolutePath
+}
+
+tasks.register('verifyChartTheme', JavaExec) {
+    group = 'verification'
+    description = 'Checks app and chart colors change in the same rendered frame at 1x and 2x density.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.marketdata.desktop.ChartThemeSmokeKt'
+    systemProperty 'java.awt.headless', 'false'
+    args layout.buildDirectory.dir('reports/chart-theme').get().asFile.absolutePath
 }
 
 tasks.register('verifyChartRecomposition', JavaExec) {

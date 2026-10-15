@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
@@ -54,7 +55,8 @@ import com.marketdata.desktop.ui.theme.DeskColors
 @Composable
 internal fun SearchField(value: String, onChange: (String) -> Unit, placeholder: String,
                          modifier: Modifier = Modifier, inputModifier: Modifier = Modifier,
-                         onFocusChange: (Boolean) -> Unit = {}) {
+                         onFocusChange: (Boolean) -> Unit = {},
+                         containerColor: Color? = null) {
     val focusRequester = remember { FocusRequester() }
     var restoreFocus by remember { mutableStateOf(false) }
     LaunchedEffect(restoreFocus) {
@@ -65,7 +67,7 @@ internal fun SearchField(value: String, onChange: (String) -> Unit, placeholder:
     }
     val shape = RoundedCornerShape(8.dp)
     Row(modifier.height(40.dp)
-        .background(if (MaterialTheme.colors.isLight) DeskColors.panel else DeskColors.elevated, shape)
+        .background(containerColor ?: if (MaterialTheme.colors.isLight) DeskColors.panel else DeskColors.elevated, shape)
         .padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
         Icon(Icons.Default.Search, null, tint = DeskColors.muted, modifier = Modifier.size(19.dp))
         Spacer(Modifier.width(10.dp))

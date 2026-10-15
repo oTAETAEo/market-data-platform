@@ -15,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.material.MaterialTheme
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
@@ -40,11 +41,12 @@ fun main() {
             title = "",
             state = rememberWindowState(width = 1440.dp, height = 940.dp)
         ) {
-            DisposableEffect(window, dark) {
-                configureDesktopWindow(window, dark)
-                onDispose { }
-            }
             MarketTheme(dark) {
+                val appliedDark = !MaterialTheme.colors.isLight
+                DisposableEffect(window, appliedDark) {
+                    configureDesktopWindow(window, appliedDark)
+                    onDispose { }
+                }
                 MarketWorkspace(desktop.viewModel, onToggleTheme = {
                     dark = !dark
                     runCatching { appearance.save(dark) }

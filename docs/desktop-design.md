@@ -41,6 +41,10 @@ Lightweight Charts는 JavaFX WebView에서 그립니다. 화면에는 완성된 
 
 가격, 화면 크기, 마우스 입력이 변경되면 최대 약 30fps로 프레임을 갱신하고 버퍼를 재사용합니다. 빈 프레임은 마지막 정상 프레임으로 대체하며, 드래그와 휠 확대 및 크로스헤어 입력은 Lightweight Charts API에 연결합니다. 시장 데이터 수신과 봉 확정 처리는 렌더링과 독립적으로 계속됩니다.
 
+테마 전환 시에는 차트가 새 팔레트로 그려진 것을 확인한 뒤 화면과 차트를 같은 Compose 프레임에서 전환합니다. 이전 테마 프레임은 준비가 끝날 때까지 유지하며, 차트를 다시 생성하지 않아 확대·스크롤 위치와 실시간 갱신이 유지됩니다. 연속 전환에서는 마지막 요청을 적용하며, 렌더러 오류나 2초 초과 대기 시 앱 전체가 멈추지 않도록 전환을 진행하고 테마가 다른 차트 이미지는 표시하지 않습니다. 창 배경도 적용된 테마를 따릅니다.
+
+`./gradlew :apps:desktop:verifyThemeTransition :apps:desktop:verifyChartTheme :apps:desktop:verifyChartPopup`으로 준비 대기·취소·오류·타임아웃 처리, 1배·2배 해상도의 일반·연속 전환 프레임, 드롭다운 및 차트 상태 유지를 검사합니다. 차트 테마 검사 이미지는 `apps/desktop/build/reports/chart-theme`에 생성됩니다.
+
 ## 창 프레임
 
 왼쪽 상단 로고와 브랜드 문구, 네이티브 창 제목은 표시하지 않습니다. macOS에서는 `apple.awt.fullWindowContent`, `apple.awt.transparentTitleBar`, `apple.awt.windowTitleVisible` 설정으로 콘텐츠를 제목 표시줄까지 확장합니다. 창·콘텐츠·루트 패널 배경은 선택한 테마를 따르며 다크 모드는 `#080909`, 라이트 모드는 `#F2F4F3`입니다. 기본 창 버튼과 크기 조절을 유지하며 상단 32dp는 창 이동 영역입니다.

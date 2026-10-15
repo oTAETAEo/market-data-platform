@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
@@ -26,6 +27,8 @@ import androidx.compose.ui.input.pointer.isTertiaryPressed
 import androidx.compose.ui.unit.Dp
 import com.marketdata.desktop.model.ChartCandle
 import com.marketdata.desktop.ui.theme.DeskColors
+import com.marketdata.desktop.ui.theme.LocalThemeTransition
+import com.marketdata.desktop.ui.theme.ThemeRenderer
 import javafx.application.Platform
 import javafx.animation.AnimationTimer
 import javafx.concurrent.Worker
@@ -68,10 +71,14 @@ internal fun LightweightCandlestickChart(
     val panel = renderer ?: remember { LightweightChartPanel() }
     val density = LocalDensity.current.density
     val dark = !MaterialTheme.colors.isLight
-    val frame = panel.frame.takeIf { panel.frameKey == chartKey }
-    DisposableEffect(panel) { onDispose(panel::dispose) }
+    val transition = LocalThemeTransition.current
+    val frame = panel.frameForTheme(chartKey, dark)
+    DisposableEffect(panel, transition) {
+        transition?.renderers?.add(panel)
+        onDispose { transition?.renderers?.remove(panel); panel.dispose() }
+    }
     LaunchedEffect(panel, chartKey, candles) { panel.update(chartKey, candles) }
-    LaunchedEffect(panel, dark) { panel.setDark(dark) }
+    LaunchedEffect(panel, dark, transition) { if (transition == null) panel.setDark(dark) }
     Box(Modifier.fillMaxWidth().height(height).background(DeskColors.elevated)
         .onSizeChanged { panel.setViewport(it.width / density.toDouble(), it.height / density.toDouble(), density.toDouble()) }
         .onPointerEvent(PointerEventType.Enter) { event ->
@@ -115,11 +122,13 @@ internal fun LightweightCandlestickChart(
 }
 
 // The Swing host initializes JavaFX offscreen; only immutable frames enter the Compose scene.
-internal class LightweightChartPanel : JFXPanel() {
-    var frame by mutableStateOf<ImageBitmap?>(null)
-        private set
-    var frameKey by mutableStateOf("")
-        private set
+internal class LightweightChartPanel : JFXPanel(), ThemeRenderer {
+    private data class RenderedFrame(val key: String, val dark: Boolean, val image: ImageBitmap)
+    private var renderedFrames by mutableStateOf<List<RenderedFrame>>(emptyList())
+    val frame: ImageBitmap? get() = renderedFrames.firstOrNull()?.image
+    val frameKey: String get() = renderedFrames.firstOrNull()?.key ?: ""
+    private var currentChartKey = ""
+    private var pendingTheme: CompletableFuture<Unit>? = null
     @Volatile private var ready = false
     @Volatile private var disposed = false
     @Volatile private var pendingKey = ""
@@ -149,7 +158,7 @@ internal class LightweightChartPanel : JFXPanel() {
             frameTimer = object : AnimationTimer() {
                 private var lastFrameAt = 0L
                 override fun handle(now: Long) {
-                    if (!ready || framesRequested == 0 || now - lastFrameAt < 33_000_000L) return
+                    if (!ready || framesRequested == 0 || (pendingTheme == null && now - lastFrameAt < 33_000_000L)) return
                     lastFrameAt = now
                     if (publishFrame()) framesRequested--
                 }
@@ -174,10 +183,10 @@ internal class LightweightChartPanel : JFXPanel() {
         val data = candles.toChartJson()
         Platform.runLater {
             if (disposed || (pendingKey == key && pendingData == data)) return@runLater
-            if (pendingKey != key) frame = null
+            if (pendingKey != key) renderedFrames = emptyList()
             pendingKey = key
             pendingData = data
-            frameKey = chartKey
+            currentChartKey = chartKey
             if (ready) pushPending()
         }
     }
@@ -195,18 +204,37 @@ internal class LightweightChartPanel : JFXPanel() {
         }
     }
 
-    fun setDark(value: Boolean) {
+    fun setDark(value: Boolean) = prepareTheme(value)
+
+    override fun prepareTheme(dark: Boolean): CompletableFuture<Unit> {
+        val prepared = CompletableFuture<Unit>()
         Platform.runLater {
-            if (disposed || dark == value) return@runLater
-            dark = value
-            if (ready) applyTheme()
+            if (disposed || (this.dark == dark && pendingTheme == null && renderedFrames.firstOrNull()?.dark == dark)) {
+                prepared.complete(Unit)
+                return@runLater
+            }
+            pendingTheme?.complete(Unit)
+            pendingTheme = null
+            this.dark = dark
+            try {
+                if (ready) applyTheme()
+                if (!ready || renderedFrames.isEmpty()) prepared.complete(Unit)
+                else pendingTheme = prepared
+            } catch (failure: Exception) {
+                prepared.completeExceptionally(failure)
+            }
         }
+        return prepared
     }
+
+    fun frameForTheme(key: String, dark: Boolean): ImageBitmap? =
+        renderedFrames.firstOrNull { it.key == key && it.dark == dark }?.image
 
     private fun applyTheme() {
         webView?.engine?.executeScript("window.marketChartTheme($dark)")
         scene?.fill = if (dark) javafx.scene.paint.Color.rgb(18, 20, 20) else javafx.scene.paint.Color.WHITE
         framesRequested = 3
+        Platform.requestNextPulse()
     }
 
     private fun applyViewport() {
@@ -222,6 +250,7 @@ internal class LightweightChartPanel : JFXPanel() {
 
     private fun publishFrame(): Boolean {
         val view = webView ?: return false
+        if (currentChartKey.isBlank() || view.engine.executeScript("window.marketChartRenderedTheme === $dark") != true) return false
         val width = ceil(viewportWidth * pixelScale).toInt()
         val height = ceil(viewportHeight * pixelScale).toInt()
         if (snapshotImage?.width != width.toDouble() || snapshotImage?.height != height.toDouble()) {
@@ -234,11 +263,27 @@ internal class LightweightChartPanel : JFXPanel() {
         }
         view.snapshot(parameters, snapshotImage)
         val pixels = snapshotImage!!.pixelReader
+        val expectedBackground = if (dark) 0xFF121414.toInt() else -1
+        var backgroundSamples = 0
+        var matchingSamples = 0
+        for (y in 2 until minOf(height, (12 * pixelScale).toInt()) step 2) {
+            for (x in 2 until (width - 70 * pixelScale).toInt().coerceAtLeast(3) step 8) {
+                backgroundSamples++
+                if (pixels.getArgb(x, y) == expectedBackground) matchingSamples++
+            }
+        }
+        // WebKit may still expose the old canvas texture after the DOM palette has changed.
+        if (backgroundSamples == 0 || matchingSamples * 4 < backgroundSamples * 3) return false
         val colors = mutableSetOf<Int>()
         for (y in 0 until height step 16) for (x in 0 until width step 16) colors.add(pixels.getArgb(x, y))
         if (colors.size <= 4) return false
         snapshotBuffer = SwingFXUtils.fromFXImage(snapshotImage, snapshotBuffer)
-        frame = snapshotBuffer!!.toComposeImageBitmap()
+        val next = RenderedFrame(currentChartKey, dark, snapshotBuffer!!.toComposeImageBitmap())
+        Snapshot.withMutableSnapshot {
+            renderedFrames = listOf(next) + renderedFrames.filter { it.dark != dark }.take(1)
+        }
+        pendingTheme?.complete(Unit)
+        pendingTheme = null
         return true
     }
 
@@ -273,6 +318,8 @@ internal class LightweightChartPanel : JFXPanel() {
         if (disposed) return
         disposed = true
         Platform.runLater {
+            pendingTheme?.complete(Unit)
+            pendingTheme = null
             ready = false
             frameTimer?.stop()
             webView?.engine?.load(null)
@@ -389,6 +436,8 @@ private const val CHART_HTML = """
       wickUpColor: '#8ae6ad', wickDownColor: '#f2aa98'
     });
     let themeDark = true;
+    let themeRevision = 0;
+    window.marketChartRenderedTheme = null;
     let currentData = [];
     const themedData = data => data.map(value => {
       if (value.closed) return value;
@@ -396,6 +445,8 @@ private const val CHART_HTML = """
       return { ...value, color, borderColor: color, wickColor: color };
     });
     window.marketChartTheme = dark => {
+      const revision = ++themeRevision;
+      window.marketChartRenderedTheme = null;
       themeDark = dark;
       const background = dark ? '#121414' : '#ffffff';
       const text = dark ? '#9ba49e' : '#58675f';
@@ -420,6 +471,9 @@ private const val CHART_HTML = """
         series.setData(themedData(currentData));
         if (range) chart.timeScale().setVisibleLogicalRange(range);
       }
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        if (revision === themeRevision) window.marketChartRenderedTheme = dark;
+      }));
     };
     let currentKey = '';
     let currentLength = 0;
