@@ -18,12 +18,18 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.marketdata.desktop.application.DesktopCompositionRoot
+import com.marketdata.desktop.application.InstrumentCatalog
+import com.marketdata.desktop.model.MarketCatalog
+import com.marketdata.core.market.MarketInstrument
 import com.marketdata.desktop.ui.theme.DeskColors
 import com.marketdata.desktop.ui.theme.MarketTheme
 import com.marketdata.desktop.ui.theme.deskPalette
 import com.marketdata.desktop.ui.watchlist.MarketSearch
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.yield
+import java.util.concurrent.CompletableFuture
 import java.awt.Canvas
 import java.awt.event.KeyEvent as AwtKeyEvent
 import java.io.File
@@ -32,7 +38,17 @@ import javax.imageio.ImageIO
 fun main(args: Array<String>) = runBlocking {
     val output = File(args.single()).apply { mkdirs() }
     for (width in listOf(1440, 420)) for (dark in listOf(true, false)) {
-        val state = DesktopCompositionRoot.createWorkspace()
+        val instruments = (MarketCatalog.assets + MarketCatalog.fromInput("ADA")!!).map {
+            MarketInstrument(it.symbol, it.ticker, "USDT", it.name)
+        }
+        var failLookup = false
+        var pending: CompletableFuture<List<MarketInstrument>>? = null
+        val source = InstrumentCatalog(fetch = {
+            pending ?: if (failLookup) CompletableFuture.failedFuture(IllegalStateException("HTTP 429"))
+                else CompletableFuture.completedFuture(instruments)
+        })
+        val state = DesktopCompositionRoot.createWorkspace(source)
+        state.refreshInstrumentCatalog()
         val originalWatchlist = state.watchlist
         var anchor = Rect.Zero
         val scene = ImageComposeScene(width, 560, Density(1f), coroutineContext) {
@@ -104,8 +120,8 @@ fun main(args: Array<String>) = runBlocking {
             check(state.watchlist == originalWatchlist)
             click(anchor.left + 70, anchor.center.y)
             type("ada/usdt")
-            check(state.searchResults.isEmpty())
-            capture("search-custom")
+            check(state.searchResults.single().symbol == "ADAUSDT")
+            capture("search-listed")
             key(Key.Enter)
             check(state.selection.asset.symbol == "ADAUSDT" && state.query.isEmpty())
             check(state.watchlist == originalWatchlist)
@@ -119,6 +135,14 @@ fun main(args: Array<String>) = runBlocking {
             type("btc")
             key(Key.Escape)
             check(state.watchlist == originalWatchlist && state.visibleAssets == originalWatchlist)
+            state.updateQuery("NOTLISTED")
+            click(anchor.left + 70, anchor.center.y)
+            check(state.searchResults.isEmpty())
+            key(Key.Enter)
+            check(state.selection == selection && state.query == "NOTLISTED")
+            click(anchor.right - 28, anchor.center.y)
+            type("btc")
+            key(Key.Escape)
             check(menuPixel() == closedPixel)
             state.updateQuery("btc")
             settle()
@@ -140,7 +164,33 @@ fun main(args: Array<String>) = runBlocking {
             check(state.query.isEmpty() && state.selection.asset == last) { "Keyboard clear changed selection instead of clearing" }
             type("btc")
             key(Key.Escape)
-            println("Market search $width ${if (dark) "dark" else "light"} passed: typing focus, mouse/keyboard selection, custom ticker, invalid input, dismissal and scrolling")
+            failLookup = true
+            state.refreshInstrumentCatalog(force = true)
+            click(anchor.left + 70, anchor.center.y)
+            capture("search-api-error")
+            val beforeRetry = state.selection
+            key(Key.Enter)
+            check(!state.catalogReady && state.catalogState.failed && state.selection == beforeRetry)
+            failLookup = false
+            click(anchor.right - 30, anchor.bottom + 34)
+            check(state.catalogReady && state.query == "btc") { "Mouse retry did not refresh the catalog" }
+            key(Key.Enter)
+            check(state.selection.asset.symbol == "BTCUSDT" && state.query.isEmpty())
+            val waiting = CompletableFuture<List<MarketInstrument>>()
+            pending = waiting
+            val loading = launch { state.refreshInstrumentCatalog(force = true) }
+            yield()
+            type("sol")
+            capture("search-api-loading")
+            key(Key.Enter)
+            check(state.catalogState.loading && state.selection.asset.symbol == "BTCUSDT")
+            pending = null
+            waiting.complete(instruments)
+            loading.join()
+            settle()
+            key(Key.Enter)
+            check(state.selection.asset.symbol == "SOLUSDT")
+            println("Market search $width ${if (dark) "dark" else "light"} passed: API-backed selection, unsupported input, failure/loading, retry, independent watchlist and keyboard navigation")
         } finally {
             scene.close()
         }

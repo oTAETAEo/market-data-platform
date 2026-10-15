@@ -86,7 +86,24 @@ tasks.register('verifyWorkspace', JavaExec) {
 }
 
 tasks.named('check') {
-    dependsOn 'verifyWorkspace', 'verifyDesktopUi', 'verifyAppearance', 'verifyMarketSearch'
+    dependsOn 'verifyWorkspace', 'verifyDesktopUi', 'verifyAppearance', 'verifyMarketSearch', 'verifyInstrumentCatalog'
+}
+
+tasks.register('verifyInstrumentCatalog', JavaExec) {
+    group = 'verification'
+    description = 'Checks metadata caching, lookup failures, exchange switching and selection validation.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.marketdata.desktop.InstrumentCatalogChecksKt'
+    systemProperty 'java.awt.headless', 'true'
+}
+
+tasks.register('verifyLiveInstruments', JavaExec) {
+    group = 'verification'
+    description = 'Fetches public Binance and Bybit tradable instrument metadata without credentials.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.marketdata.desktop.LiveInstrumentSmokeKt'
 }
 
 tasks.register('verifyMarketSearch', JavaExec) {

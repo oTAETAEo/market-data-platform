@@ -2,9 +2,8 @@ package com.marketdata.desktop.model
 
 import com.marketdata.ai.AnalysisResult
 
-internal data class MarketAsset(val ticker: String, val name: String, val mark: String) {
-    val symbol get() = "${ticker}USDT"
-}
+internal data class MarketAsset(val ticker: String, val name: String, val mark: String,
+                               val symbol: String = "${ticker}USDT")
 
 internal data class AnalysisSelection(
     val asset: MarketAsset,

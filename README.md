@@ -42,6 +42,7 @@ Market Data Platform은 Binance, Bybit 같은 거래소의 공개 암호화폐 �
 | Binance collector | Binance USD-M Futures Kline WebSocket 수집과 정규화 |
 | Bybit collector | Bybit Linear Kline WebSocket 수집과 정규화 |
 | Desktop app | 실시간 수집 상태, AI 설정, TradingAgents 리포트를 제공하는 Compose 앱 |
+| 종목 검색 | 거래소 API의 거래 중인 암호화폐 USDT 무기한 선물 목록을 캐시해 검색, 관심 목록과 독립적으로 선택 |
 | Build system | Gradle 멀티 모듈 JVM 프로젝트 |
 | Local infrastructure | 로컬 스트림 검증을 위한 Docker Compose 파일 |
 | Documentation | Collector MVP 범위와 이벤트 계약 문서 |

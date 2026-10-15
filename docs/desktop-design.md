@@ -23,11 +23,15 @@
 
 ## 종목 검색
 
-상단 검색창은 등록된 종목 카탈로그와 관심 목록을 대상으로 티커, `BTC/USDT` 같은 심볼, 종목 이름을 검색합니다. 즐겨찾기 필터와 무관하게 검색하며, 관심 목록에 없는 카탈로그 종목도 선택할 수 있습니다. 거래소의 전체 상장 종목을 실시간 조회하는 검색은 아닙니다.
+상단 검색창은 선택한 거래소의 공개 API에서 받은 종목 목록을 대상으로 티커, `BTC/USDT` 같은 심볼, 제공 가능한 종목 이름을 검색합니다. Binance USD-M과 Bybit Linear에서 거래 중인 암호화폐 USDT 무기한 선물만 사용하며, Bybit은 `nextPageCursor`가 끝날 때까지 조회합니다. 현물·다른 결제 자산·만기 계약·상장 대기·거래 중단 종목과 구분합니다.
+
+목록은 앱 실행 또는 거래소 변경 시 백그라운드에서 조회하고 거래소별로 10분간 메모리에 캐시합니다. 1분마다 캐시 만료를 확인하며, 검색 입력 자체는 API 호출 없이 캐시에서 처리합니다. API 이름 정보가 없으면 알려진 로컬 이름이나 거래소의 기준 자산 코드를 사용합니다. `1000PEPEUSDT`처럼 배수가 붙은 실제 심볼은 그대로 보존합니다.
 
 검색 결과는 검색창 너비에 맞춘 Compose 팝업으로 표시합니다. 입력 포커스를 유지하므로 목록이 열린 상태에서도 계속 입력할 수 있습니다. 방향키와 Enter, 마우스 클릭으로 선택하며 Esc 또는 바깥 클릭으로 닫습니다. 선택하면 기존 수집 경로로 분석 대상 종목을 변경하고 검색어를 비웁니다. 검색 입력과 선택은 왼쪽 관심 목록을 필터링하거나 자동 추가하지 않으며 즐겨찾기 필터도 유지합니다. 검색어를 입력하는 것만으로 수집 종목을 변경하지 않습니다.
 
-목록에 없는 유효한 USDT 티커는 `직접 입력 · 상장 미확인`으로 구분합니다. 이 항목은 거래소 상장 여부를 확인한 검색 결과가 아닙니다. 잘못된 입력은 빈 결과 상태로 표시하며 선택할 수 없습니다.
+정상적으로 받은 최신 목록에 일치하는 종목이 없을 때만 해당 거래소의 검색 결과가 없다고 표시합니다. 상단 검색에서는 미확인 티커를 직접 선택할 수 없습니다. 조회 중·실패·캐시 만료 상태는 별도로 표시하고 선택을 막으며, 실패하거나 갱신이 필요하면 다시 조회 버튼을 제공합니다. 이전 캐시가 있어도 실패 상태를 새 목록의 정상 조회로 위장하지 않습니다. 거래소를 바꾼 뒤 늦게 도착한 이전 응답은 현재 결과를 덮어쓰지 않습니다.
+
+검색 목록은 조회 시점의 스냅샷입니다. 캐시가 유효해도 이후 거래 중단이나 네트워크 장애가 발생할 수 있으며, 실제 캔들 수집 상태와 분석 준비 여부는 별도로 확인합니다. 관심 종목 추가 다이얼로그의 수동 입력은 기존 경로이며 상단의 검증된 검색 결과와 구분합니다.
 
 검색창과 검색 결과 팝업에는 테두리를 사용하지 않습니다. 라이트 모드에서는 흰 검색창으로 배경과 구분하고, 결과 팝업은 얕은 그림자로 구분합니다. 팝업이 분석 화면이나 차트에 가려지지 않도록 동일한 Compose 화면에 렌더링합니다.
 
@@ -78,6 +82,8 @@ Lightweight Charts는 JavaFX WebView에서 그립니다. 화면에는 완성된 
 ./gradlew :apps:desktop:verifyWorkspace
 ./gradlew :apps:desktop:verifyDesktopUi
 ./gradlew :apps:desktop:verifyMarketSearch
+./gradlew :apps:desktop:verifyInstrumentCatalog
+./gradlew :apps:desktop:verifyLiveInstruments
 ./gradlew :apps:desktop:verifyDesktopWindow
 ./gradlew :apps:desktop:check
 ./gradlew :apps:desktop:createDistributable
@@ -85,7 +91,11 @@ Lightweight Charts는 JavaFX WebView에서 그립니다. 화면에는 완성된 
 
 `verifyDesktopUi`는 폭 420~1920의 8가지 창 크기에서 렌더링과 입력 동작을 검사합니다. 같은 Compose 장면의 크기를 연속으로 바꾸면서 패널 전환과 선택된 리포트의 유지도 검증합니다. 결과 이미지는 `apps/desktop/build/reports/desktop-ui`에 생성됩니다.
 
-`verifyMarketSearch`는 폭 420·1440의 두 테마에서 테두리 없는 검색창, 관심 목록과의 독립성, 입력 포커스, 검색 결과 선택, 직접 입력 티커, 빈 결과, 닫기·재열기 및 키보드 목록 스크롤을 검사합니다. 결과 이미지는 `apps/desktop/build/reports/market-search`에 생성됩니다.
+`verifyMarketSearch`는 폭 420·1440의 두 테마에서 테두리 없는 검색창, 관심 목록과의 독립성, 입력 포커스, 검증된 종목 선택, 미지원 입력 차단, 빈 결과, 닫기·재열기 및 키보드 목록 스크롤을 검사합니다. 결과 이미지는 `apps/desktop/build/reports/market-search`에 생성됩니다. UI 검사는 네트워크 대신 주입한 목록을 사용합니다.
+
+`verifyInstrumentCatalog`는 캐시·TTL·재조회·실패와 미지원의 구분·이전 거래소 응답 무시·취소를 검사합니다. 각 수집기 모듈의 `InstrumentClientTest`는 HTTP fixture로 계약 필터, 정확한 심볼, 페이지 처리 및 오류를 검증합니다. `verifyLiveInstruments`는 키 없이 실제 공개 메타데이터 API를 호출하는 별도 네트워크 검사이며 기본 `check`에는 포함하지 않습니다.
+
+메타데이터 계약은 [Binance Exchange Information](https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Exchange-Information)과 [Bybit Instruments Info](https://bybit-exchange.github.io/docs/v5/market/instrument)를 기준으로 합니다.
 
 `verifyDesktopWindow`는 화면에 표시하지 않은 실제 ComposeWindow의 네이티브 피어를 생성해 제목, 배경색, 최소 크기, 기본 창 장식과 macOS 프레임 속성을 확인합니다. OS 화면 녹화 권한은 사용하지 않으며, 실제 창 장식의 스크린샷 검사는 포함하지 않습니다.
 

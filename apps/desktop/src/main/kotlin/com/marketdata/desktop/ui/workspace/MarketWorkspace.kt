@@ -56,6 +56,12 @@ internal fun MarketWorkspace(
     val detailScroll = rememberScrollState()
     LaunchedEffect(viewModel.selection) { analysisScroll.scrollTo(0) }
     LaunchedEffect(viewModel.selectedAgent, viewModel.activeRun) { detailScroll.scrollTo(0) }
+    LaunchedEffect(viewModel.selection.exchange) {
+        while (true) {
+            viewModel.refreshInstrumentCatalog()
+            kotlinx.coroutines.delay(60_000)
+        }
+    }
     LaunchedEffect(Unit) {
         while (true) {
             viewModel.refreshMarketStatus()
@@ -85,7 +91,9 @@ internal fun MarketWorkspace(
             Column(Modifier.fillMaxSize()) {
                 titleBar()
                 TopBar(viewModel, layout, marketListVisible, onSettings = { showSettings = true },
-                    onToggleTheme = onToggleTheme, onSearchSelect = { viewModel.selectSearchResult(it); showMarkets = false }) {
+                    onToggleTheme = onToggleTheme, onSearchSelect = {
+                        viewModel.selectSearchResult(it).also { selected -> if (selected) showMarkets = false }
+                    }) {
                     if (marketListVisible) {
                         viewModel.updateQuery("")
                         showMarkets = false

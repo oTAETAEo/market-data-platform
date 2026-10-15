@@ -1,6 +1,7 @@
 package com.marketdata.desktop.model
 
 import java.util.Locale
+import com.marketdata.core.market.MarketInstrument
 
 internal object MarketCatalog {
     val assets = listOf(
@@ -16,7 +17,16 @@ internal object MarketCatalog {
 
     fun matches(asset: MarketAsset, query: String): Boolean {
         val normalized = normalize(query)
-        return asset.symbol.contains(normalized) || asset.name.uppercase(Locale.ROOT).contains(normalized)
+        return asset.symbol.contains(normalized) || normalize(asset.name).contains(normalized)
+    }
+
+    fun fromInstrument(instrument: MarketInstrument): MarketAsset {
+        val ticker = instrument.symbol().removeSuffix(instrument.quoteAsset())
+        val known = assets.firstOrNull { it.symbol == instrument.symbol() }
+        val name = if (instrument.displayName().isBlank() || instrument.displayName() == instrument.baseAsset())
+            known?.name ?: instrument.displayName().ifBlank { ticker }
+        else instrument.displayName()
+        return MarketAsset(ticker, name, known?.mark ?: ticker.first().toString(), instrument.symbol())
     }
 
     fun fromInput(input: String): MarketAsset? {

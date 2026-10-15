@@ -5,6 +5,7 @@ import com.marketdata.ai.TradingAgentsAdapter
 import com.marketdata.ai.AiSettings
 import com.marketdata.desktop.application.AnalysisRequest
 import com.marketdata.desktop.application.AnalyzeMarketUseCase
+import com.marketdata.desktop.application.DesktopCompositionRoot
 import com.marketdata.desktop.model.AgentGroup
 import com.marketdata.desktop.model.MarketCatalog
 import com.marketdata.desktop.model.WorkspacePage
@@ -120,11 +121,14 @@ fun main() = runBlocking {
     println("Workspace checks passed: use-case contract, search, favorites, selection isolation, history, in-flight navigation, duplicate requests, failure recovery, retention.")
 }
 
-private fun viewModelForChecks(adapter: TradingAgentsAdapter = StubTradingAgentsAdapter()) =
+private suspend fun viewModelForChecks(adapter: TradingAgentsAdapter = StubTradingAgentsAdapter()) =
     WorkspaceViewModel(AnalyzeMarketUseCase(object : MarketEngine() {
         override fun currentContext(exchange: String, symbol: String, timeframe: String) =
             MarketContext(exchange, symbol, timeframe, 200, Instant.now(), listOf("test"), emptyList())
-    }, adapter)).apply { updateAiSettings("openai", "quick", "deep", "key") }
+    }, adapter), instrumentCatalog = DesktopCompositionRoot.previewCatalog()).apply {
+        updateAiSettings("openai", "quick", "deep", "key")
+        refreshInstrumentCatalog()
+    }
 
 private fun checkAnalysisUseCase() {
     val context = MarketContext("BYBIT", "ETHUSDT", "1h", 200, Instant.EPOCH, listOf("test context"), emptyList())
